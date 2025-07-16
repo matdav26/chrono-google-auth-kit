@@ -7,17 +7,18 @@ const Index = () => {
   const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-      }
-    );
-
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+      }
+    );
 
     // Clean up listener on unmount
     return () => subscription.unsubscribe();
@@ -42,6 +43,11 @@ const Index = () => {
           </Button>
         </div>
       )}
+      
+      {/* Debug: Display current session */}
+      <pre style={{ marginTop: 20, padding: 10, background: "#eee", fontSize: 12 }}>
+        {JSON.stringify(session, null, 2) || "No session"}
+      </pre>
     </div>
   );
 };
