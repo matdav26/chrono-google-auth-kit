@@ -1,39 +1,47 @@
 import { useEffect, useState } from "react";
 import { AuthForm } from '@/components/AuthForm';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const { user, signOut } = useAuth();
   const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+      }
+    );
+
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
+
+    // Clean up listener on unmount
+    return () => subscription.unsubscribe();
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      {!user ? (
+      {!session ? (
         <AuthForm />
       ) : (
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Welcome back!</h1>
           <p className="text-xl text-muted-foreground mb-6">
-            You're successfully signed in as {user.email}
+            You're successfully signed in as {session.user.email}
           </p>
-          <Button onClick={signOut} variant="outline">
+          <Button onClick={handleSignOut} variant="outline">
             Sign Out
           </Button>
         </div>
       )}
-      
-      {/* DEBUG: show session */}
-      <pre style={{ marginTop: 20, padding: 10, background: "#eee" }}>
-        {JSON.stringify(session, null, 2) || "no session yet"}
-      </pre>
     </div>
   );
 };
