@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +13,14 @@ export const AuthForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
       const redirectUrl = `${window.location.origin}/`;
@@ -30,23 +34,16 @@ export const AuthForm = () => {
       });
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        setError(error.message);
       } else {
         toast({
           title: "Success",
           description: "Check your email for the confirmation link!",
         });
+        navigate('/projects');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -55,6 +52,7 @@ export const AuthForm = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -63,23 +61,16 @@ export const AuthForm = () => {
       });
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        setError(error.message);
       } else {
         toast({
           title: "Success",
           description: "Welcome back!",
         });
+        navigate('/projects');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -87,28 +78,21 @@ export const AuthForm = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    setError('');
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${window.location.origin}/projects`
         }
       });
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        setError(error.message);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -176,6 +160,11 @@ export const AuthForm = () => {
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
+              {error && (
+                <div className="text-destructive text-sm mt-2">
+                  {error}
+                </div>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="signup">
@@ -228,6 +217,11 @@ export const AuthForm = () => {
                   {loading ? "Creating account..." : "Sign Up"}
                 </Button>
               </form>
+              {error && (
+                <div className="text-destructive text-sm mt-2">
+                  {error}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
