@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
 import { AuthForm } from '@/components/AuthForm';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
+import { Plus, ArrowRight, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+type Project = Tables<'projects'>;
 
 const Index = () => {
   const [session, setSession] = useState<any>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Get initial session
@@ -24,30 +35,184 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Fetch projects when user is authenticated
+  useEffect(() => {
+    if (session?.user) {
+      fetchProjects();
+    } else {
+      setLoading(false);
+      setProjects([]);
+    }
+  }, [session]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setProjects(data || []);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    const name = prompt('Enter project name:');
+    if (!name?.trim()) return;
+
+    try {
+      setCreating(true);
+      
+      const { data, error } = await supabase
+        .from('projects')
+        .insert([{ name: name.trim() }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      // Prepend new project to the list
+      setProjects(prev => [data, ...prev]);
+      
+      toast({
+        title: "Success",
+        description: "Project created successfully",
+      });
+    } catch (err) {
+      console.error('Error creating project:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to create project',
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      {!session ? (
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <AuthForm />
-      ) : (
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Welcome back!</h1>
-          <p className="text-xl text-muted-foreground mb-6">
-            You're successfully signed in as {session.user.email}
-          </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold">My Projects</h1>
+            <p className="text-muted-foreground mt-2">
+              Signed in as {session.user.email}
+            </p>
+          </div>
           <Button onClick={handleSignOut} variant="outline">
             Sign Out
           </Button>
         </div>
-      )}
-      
-      {/* Debug: Display current session */}
-      <pre style={{ marginTop: 20, padding: 10, background: "#eee", fontSize: 12 }}>
-        {JSON.stringify(session, null, 2) || "No session"}
-      </pre>
+
+        {/* Create Project Button */}
+        <div className="mb-6">
+          <Button 
+            onClick={handleCreateProject} 
+            disabled={creating}
+            className="flex items-center gap-2"
+          >
+            {creating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            New Project
+          </Button>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2 text-muted-foreground">Loading...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-12">
+            <p className="text-destructive text-lg">{error}</p>
+            <Button 
+              onClick={fetchProjects} 
+              variant="outline" 
+              className="mt-4"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && projects.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">No projects yet.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Create your first project to get started.
+            </p>
+          </div>
+        )}
+
+        {/* Projects Grid */}
+        {!loading && !error && projects.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project) => (
+              <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="truncate">{project.name}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </CardTitle>
+                  {project.description && (
+                    <CardDescription>{project.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Created {formatDate(project.created_at)}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = `/projects/${project.id}`}
+                    >
+                      View →
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
