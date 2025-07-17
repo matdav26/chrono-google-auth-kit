@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,9 +18,42 @@ export const useAuth = () => {
   return context;
 };
 
+const ensureUserIsInUsersTable = async (user: User) => {
+  try {
+    // Check if user exists in users table
+    const { data: existingUser, error: selectError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('Error checking user existence:', selectError);
+      return;
+    }
+
+    // If user doesn't exist, insert them
+    if (!existingUser) {
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: user.id,
+          email: user.email,
+        });
+
+      if (insertError) {
+        console.error('Error inserting user:', insertError);
+      }
+    }
+  } catch (error) {
+    console.error('Error in ensureUserIsInUsersTable:', error);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const checkedUserRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -40,7 +73,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Ensure user exists in users table after authentication
+  useEffect(() => {
+    if (user && user.id !== checkedUserRef.current) {
+      checkedUserRef.current = user.id;
+      ensureUserIsInUsersTable(user);
+    }
+  }, [user]);
+
   const signOut = async () => {
+    checkedUserRef.current = null;
     await supabase.auth.signOut();
   };
 
