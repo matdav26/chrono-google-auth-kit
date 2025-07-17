@@ -19,6 +19,7 @@ export const useAuth = () => {
 };
 
 const ensureUserIsInUsersTable = async (user: User) => {
+  console.log("Running ensureUserIsInUsersTable...");
   try {
     // Check if user exists in users table
     const { data: existingUser, error: selectError } = await supabase
@@ -34,6 +35,7 @@ const ensureUserIsInUsersTable = async (user: User) => {
 
     // If user doesn't exist, insert them
     if (!existingUser) {
+      console.log("User not found in users table. Inserting now...");
       const { error: insertError } = await supabase
         .from('users')
         .insert({
