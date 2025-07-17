@@ -25,7 +25,7 @@ export const AuthForm = () => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -36,6 +36,19 @@ export const AuthForm = () => {
       if (error) {
         setError(error.message);
       } else {
+        // Insert user into users table if sign up was successful
+        if (data.user) {
+          const { error: insertError } = await supabase.from('users').insert({
+            id: data.user.id,
+            email: data.user.email,
+          });
+          
+          if (insertError) {
+            setError("Account created but failed to save user data");
+            return;
+          }
+        }
+        
         toast({
           title: "Success",
           description: "Check your email for the confirmation link!",
