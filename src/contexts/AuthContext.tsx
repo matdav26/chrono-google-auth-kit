@@ -28,11 +28,6 @@ const ensureUserIsInUsersTable = async (user: User) => {
       .eq('id', user.id)
       .single();
 
-    if (selectError && selectError.code !== 'PGRST116') {
-      console.error('Error checking user existence:', selectError);
-      return;
-    }
-
     // If user doesn't exist, insert them
     if (!existingUser) {
       console.log("User not found in users table. Inserting now...");
@@ -45,6 +40,8 @@ const ensureUserIsInUsersTable = async (user: User) => {
 
       if (insertError) {
         console.error('Error inserting user:', insertError);
+      } else {
+        console.log('✅ User inserted successfully into users table.');
       }
     }
   } catch (error) {
