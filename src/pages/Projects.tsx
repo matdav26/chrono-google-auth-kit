@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Loader2, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Project {
   id: string;
@@ -13,7 +17,9 @@ const Projects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkSessionAndFetchProjects = async () => {
@@ -45,6 +51,36 @@ const Projects = () => {
 
     checkSessionAndFetchProjects();
   }, [navigate]);
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      setDeleting(projectId);
+      
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+      
+      // Remove project from local state
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      
+      toast({
+        title: "Success",
+        description: "Project deleted successfully",
+      });
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to delete project',
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -80,12 +116,48 @@ const Projects = () => {
                 key={project.id}
                 className="p-4 border border-border rounded-lg bg-card"
               >
-                <h2 className="text-lg font-semibold text-card-foreground">
-                  {project.name || 'Untitled project'}
-                </h2>
-                {project.description && (
-                  <p className="text-muted-foreground mt-2">{project.description}</p>
-                )}
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h2 className="text-lg font-semibold text-card-foreground">
+                      {project.name || 'Untitled project'}
+                    </h2>
+                    {project.description && (
+                      <p className="text-muted-foreground mt-2">{project.description}</p>
+                    )}
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={deleting === project.id}
+                      >
+                        {deleting === project.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{project.name || 'Untitled project'}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             ))}
           </div>
