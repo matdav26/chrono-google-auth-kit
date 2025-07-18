@@ -19,27 +19,30 @@ export default function NewProject() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Log current session and authenticated user
-    const { data: { session } } = await supabase.auth.getSession();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    console.log("Current session:", session);
-    console.log("Authenticated user:", user);
-    console.log("User ID for project insertion:", user?.id);
-
     try {
-      // Insert new project
-      console.log("Creating project:", { name, description });
+      // Get fresh session data
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-    const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .insert({
-      name,
-      description, 
-      created_by: user?.id, // ✅ securely associate project with the logged-in user
-     })
-    .select()
-    .single();
+      if (sessionError || !session) {
+        throw new Error("No valid session found");
+      }
+
+      const userId = session.user.id;
+      console.log("Session user ID:", userId);
+      console.log("Session access token exists:", !!session.access_token);
+      
+      // Insert new project using session user ID
+      console.log("Creating project:", { name, description, created_by: userId });
+      
+      const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .insert({
+          name,
+          description, 
+          created_by: userId, // Use session user ID directly
+        })
+        .select()
+        .single();
       
       if (projectError) {
         console.error("Project creation failed:", projectError);
