@@ -46,15 +46,14 @@ export default function NewProject() {
       
       console.log("Project created successfully:", project);
 
-      // Insert project membership
-      const currentUser = await supabase.auth.getUser();
+      // ✅ Create project membership - make creator the owner
       const membershipPayload = {
         project_id: project.id,
-        user_id: currentUser.data.user?.id,
+        user_id: user.id,
         role: "owner" as const,
       };
       
-      console.log("Inserting project membership:", membershipPayload);
+      console.log("Creating project membership:", membershipPayload);
       
       const { data: membershipResult, error: membershipError } = await supabase
         .from("project_memberships")
@@ -62,12 +61,18 @@ export default function NewProject() {
         .select();
 
       if (membershipError) {
-        console.error("Project membership insert failed:", membershipError);
+        console.error("Project membership creation failed:", membershipError);
         throw membershipError;
       } else {
         console.log("Project membership created successfully:", membershipResult);
       }
 
+      // ✅ Success! Navigate to projects page
+      toast({
+        title: "Success",
+        description: "Project created successfully",
+      });
+      
       navigate("/projects");
     } catch (error) {
       toast({
