@@ -20,14 +20,21 @@ export default function NewProject() {
     setIsLoading(true);
 
     try {
-      console.log("Creating project:", { name, description });
+      // Get current user from session
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("No authenticated user found");
+      }
+
+      console.log("Creating project:", { name, description, created_by: user.id });
       
       const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({
           name,
           description, 
-          // created_by will be set automatically by the database default
+          created_by: user.id, // Explicitly set the created_by field
         })
         .select()
         .single();

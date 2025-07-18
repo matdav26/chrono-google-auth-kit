@@ -73,13 +73,13 @@ const Index = () => {
     try {
       setCreating(true);
       
-      console.log("Creating project:", { name: name.trim() });
+      console.log("Creating project:", { name: name.trim(), created_by: session.user.id });
       
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert([{ 
           name: name.trim(),
-          // created_by will be set automatically by database default
+          created_by: session.user.id, // Explicitly set the created_by field
         }])
         .select()
         .single();
