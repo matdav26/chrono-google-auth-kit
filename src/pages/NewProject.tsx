@@ -19,6 +19,14 @@ export default function NewProject() {
     e.preventDefault();
     setIsLoading(true);
 
+    // Log current session and authenticated user
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    console.log("Current session:", session);
+    console.log("Authenticated user:", user);
+    console.log("User ID for project insertion:", user?.id);
+
     try {
       // Insert new project
       console.log("Creating project:", { name, description });
