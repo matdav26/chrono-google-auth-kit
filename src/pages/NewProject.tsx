@@ -21,13 +21,20 @@ export default function NewProject() {
 
     try {
       // Insert new project
+      console.log("Creating project:", { name, description });
+      
       const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({ name, description })
         .select()
         .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error("Project creation failed:", projectError);
+        throw projectError;
+      }
+      
+      console.log("Project created successfully:", project);
 
       // Insert project membership
       const currentUser = await supabase.auth.getUser();
