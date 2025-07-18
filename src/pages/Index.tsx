@@ -73,16 +73,32 @@ const Index = () => {
     try {
       setCreating(true);
       
-      const { data, error } = await supabase
+      console.log("Creating project:", { name: name.trim() });
+      
+      const { data: project, error: projectError } = await supabase
         .from('projects')
-        .insert([{ name: name.trim() }])
+        .insert([{ 
+          name: name.trim(),
+          // created_by will be set automatically by database default
+        }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (projectError) throw projectError;
+      
+      // Create project membership for the owner
+      const { error: membershipError } = await supabase
+        .from('project_memberships')
+        .insert({
+          project_id: project.id,
+          user_id: session.user.id,
+          role: 'owner'
+        });
+
+      if (membershipError) throw membershipError;
       
       // Prepend new project to the list
-      setProjects(prev => [data, ...prev]);
+      setProjects(prev => [project, ...prev]);
       
       toast({
         title: "Success",
