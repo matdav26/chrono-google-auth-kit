@@ -30,15 +30,26 @@ export default function NewProject() {
       if (projectError) throw projectError;
 
       // Insert project membership
-      const { error: membershipError } = await supabase
+      const currentUser = await supabase.auth.getUser();
+      const membershipPayload = {
+        project_id: project.id,
+        user_id: currentUser.data.user?.id,
+        role: "owner" as const,
+      };
+      
+      console.log("Inserting project membership:", membershipPayload);
+      
+      const { data: membershipResult, error: membershipError } = await supabase
         .from("project_memberships")
-        .insert({
-          project_id: project.id,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          role: "owner",
-        });
+        .insert(membershipPayload)
+        .select();
 
-      if (membershipError) throw membershipError;
+      if (membershipError) {
+        console.error("Project membership insert failed:", membershipError);
+        throw membershipError;
+      } else {
+        console.log("Project membership created successfully:", membershipResult);
+      }
 
       navigate("/projects");
     } catch (error) {
