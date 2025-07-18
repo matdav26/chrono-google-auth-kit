@@ -20,40 +20,14 @@ export default function NewProject() {
     setIsLoading(true);
 
     try {
-      // Get fresh session data
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        throw new Error("No valid session found");
-      }
-
-      const userId = session.user.id;
-      console.log("Session user ID:", userId);
-      console.log("Session access token exists:", !!session.access_token);
-      
-      // Test auth.uid() accessibility by running a simple query first
-      const { data: authTest, error: authTestError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", userId)
-        .maybeSingle();
-      
-      console.log("Auth test result:", authTest);
-      console.log("Auth test error:", authTestError);
-      
-      // Insert new project using session user ID
-      console.log("Creating project with payload:", { 
-        name, 
-        description, 
-        created_by: userId 
-      });
+      console.log("Creating project:", { name, description });
       
       const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({
           name,
           description, 
-          created_by: userId,
+          // created_by will be set automatically by the database default
         })
         .select()
         .single();
