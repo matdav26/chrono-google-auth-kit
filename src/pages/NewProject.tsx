@@ -31,12 +31,16 @@ export default function NewProject() {
       // Insert new project
       console.log("Creating project:", { name, description });
       
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .insert({ name, description })
-        .select()
-        .single();
-
+    const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .insert({
+      name,
+      description, 
+      created_by: user?.id, // ✅ securely associate project with the logged-in user
+     })
+    .select()
+    .single();
+      
       if (projectError) {
         console.error("Project creation failed:", projectError);
         throw projectError;
