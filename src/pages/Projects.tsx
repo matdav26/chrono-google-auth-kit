@@ -117,8 +117,8 @@ const Projects = () => {
                 className="p-4 border border-border rounded-lg bg-card"
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-card-foreground">
+                  <div className="flex-1 cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)}>
+                    <h2 className="text-lg font-semibold text-card-foreground hover:text-primary transition-colors">
                       {project.name || 'Untitled project'}
                     </h2>
                     {project.description && (
