@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { ProjectTimeline } from '@/components/ProjectTimeline';
 
 interface Project {
   id: string;
@@ -109,7 +110,14 @@ const ProjectView = () => {
           )}
         </div>
 
-        <DocumentsPanel projectId={project.id} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <DocumentsPanel projectId={project.id} />
+          </div>
+          <div className="lg:col-span-1">
+            <ProjectTimeline projectId={project.id} />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Search, FileText, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { Upload, Search, FileText, Trash2, ExternalLink, Loader2, Download, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Document {
@@ -32,6 +32,9 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState('');
   const [uploadType, setUploadType] = useState<'file' | 'url'>('file');
+  const [editingDoc, setEditingDoc] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [downloading, setDownloading] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -198,6 +201,92 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
     }
   };
 
+  const handleDownload = async (document: Document) => {
+    if (document.doc_type === 'url') return; // Can't download URLs
+    
+    setDownloading(document.id);
+    
+    try {
+      // List files in the project folder to find the actual stored file
+      const { data: files } = await supabase.storage
+        .from('documents')
+        .list(projectId);
+
+      const storageFile = files?.find(f => f.name.includes(document.filename));
+      if (!storageFile) {
+        throw new Error('File not found in storage');
+      }
+
+      // Get download URL
+      const { data } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(`${projectId}/${storageFile.name}`, 60);
+
+      if (data?.signedUrl) {
+        // Create a temporary link and trigger download
+        const link = window.document.createElement('a');
+        link.href = data.signedUrl;
+        link.download = document.filename;
+        link.click();
+        
+        toast({
+          title: "Success",
+          description: "File download started",
+        });
+      }
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to download file",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleRename = async (documentId: string) => {
+    if (!editingName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ filename: editingName.trim() })
+        .eq('id', documentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Document renamed successfully",
+      });
+
+      setEditingDoc(null);
+      setEditingName('');
+      fetchDocuments();
+    } catch (err) {
+      console.error('Error renaming document:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to rename document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEditing = (doc: Document) => {
+    setEditingDoc(doc.id);
+    setEditingName(doc.filename);
+  };
+
   const filteredDocuments = documents.filter(doc =>
     doc.filename.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -337,44 +426,97 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
             <Card key={doc.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
                     {getDocIcon(doc.doc_type)}
-                    <CardTitle className="text-sm font-medium truncate">
-                      {doc.filename}
-                    </CardTitle>
+                    {editingDoc === doc.id ? (
+                      <div className="flex items-center space-x-2 flex-1">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="h-8 text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRename(doc.id);
+                            if (e.key === 'Escape') setEditingDoc(null);
+                          }}
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRename(doc.id)}
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingDoc(null)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ) : (
+                      <CardTitle className="text-sm font-medium truncate">
+                        {doc.filename}
+                      </CardTitle>
+                    )}
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEditing(doc)}
+                      disabled={editingDoc === doc.id}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    {doc.doc_type !== 'url' && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={deleting === doc.id}
+                        onClick={() => handleDownload(doc)}
+                        disabled={downloading === doc.id}
                       >
-                        {deleting === doc.id ? (
+                        {downloading === doc.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Trash2 className="h-4 w-4" />
+                          <Download className="h-4 w-4" />
                         )}
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{doc.filename}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(doc.id, doc.filename)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deleting === doc.id}
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          {deleting === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{doc.filename}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(doc.id, doc.filename)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
