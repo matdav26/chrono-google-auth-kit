@@ -193,20 +193,20 @@ const Projects = () => {
                 className="p-6 border border-border rounded-lg bg-card hover:shadow-md transition-all duration-200 hover:border-primary/20"
               >
                 <div className="flex flex-col h-full">
-                  <div className="flex-1 mb-4">
+                  <div className="flex-1">
                     {editingProject === project.id ? (
-                      <div className="mb-3">
+                      <div className="mb-4">
                         <Input
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
-                          className="text-lg font-semibold"
+                          className="text-lg font-semibold mb-3"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleRenameProject(project.id);
                             if (e.key === 'Escape') setEditingProject(null);
                           }}
                           autoFocus
                         />
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2">
                           <Button
                             size="sm"
                             onClick={() => handleRenameProject(project.id)}
@@ -223,70 +223,82 @@ const Projects = () => {
                         </div>
                       </div>
                     ) : (
-                      <h2 className="text-lg font-semibold text-card-foreground mb-3 line-clamp-2">
-                        {project.name || 'Untitled project'}
-                      </h2>
+                      <>
+                        <h2 className="text-lg font-semibold text-card-foreground mb-2">
+                          {project.name || 'Untitled project'}
+                        </h2>
+                        <p className="text-sm text-muted-foreground mb-8">
+                          Created on {new Date(project.created_at).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </p>
+                      </>
                     )}
-                    {project.description && (
-                      <p className="text-muted-foreground text-sm line-clamp-3 mb-3">{project.description}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Created {new Date(project.created_at).toLocaleDateString()}
-                    </p>
                   </div>
                   
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <div className="flex gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-3">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => navigate(`/projects/${project.id}`)}
+                        className="flex flex-col items-center p-3 h-auto"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Eye className="h-5 w-5 mb-1" />
+                        <span className="text-xs">View</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => startEditing(project)}
                         disabled={editingProject === project.id}
+                        className="flex flex-col items-center p-3 h-auto"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Edit</span>
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            disabled={deleting === project.id}
+                            className="flex flex-col items-center p-3 h-auto"
+                          >
+                            {deleting === project.id ? (
+                              <Loader2 className="h-5 w-5 mb-1 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-5 w-5 mb-1" />
+                            )}
+                            <span className="text-xs">Delete</span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{project.name || 'Untitled project'}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteProject(project.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          disabled={deleting === project.id}
-                        >
-                          {deleting === project.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{project.name || 'Untitled project'}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteProject(project.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="text-sm text-muted-foreground">
+                      {/* This will be populated with document count in the future */}
+                      {/* 5 Files */}
+                    </div>
                   </div>
                 </div>
               </div>

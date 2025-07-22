@@ -116,10 +116,6 @@ const ProjectView = () => {
             </div>
             <div className="flex items-center gap-3">
               <EventCreation projectId={project.id} />
-              <Button onClick={() => documentsRef?.openUpload()}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Document
-              </Button>
             </div>
           </div>
         </div>
