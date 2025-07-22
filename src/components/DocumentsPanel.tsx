@@ -423,8 +423,8 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDocuments.map((doc) => (
-            <Card key={doc.id}>
-              <CardHeader className="pb-3">
+            <Card key={doc.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2 flex-1 min-w-0">
                     {getDocIcon(doc.doc_type)}
@@ -470,7 +470,15 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    {doc.doc_type !== 'url' && (
+                    {doc.doc_type === 'url' && doc.raw_text ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(doc.raw_text, '_blank', 'noopener,noreferrer')}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    ) : doc.doc_type !== 'url' && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -519,21 +527,25 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-xs text-muted-foreground">
-                  <p>Type: {doc.doc_type.toUpperCase()}</p>
-                  <p>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
+              <CardContent className="pt-2">
+                <div className="text-xs text-muted-foreground space-y-2">
+                  <div className="space-y-1">
+                    <p>Type: {doc.doc_type.toUpperCase()}</p>
+                    <p>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
+                  </div>
                   {doc.doc_type === 'url' && doc.raw_text && (
-                    <p className="mt-2 truncate">
+                    <div className="pt-2 border-t border-border">
                       <a 
                         href={doc.raw_text} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
+                        onClick={(e) => e.stopPropagation()}
                       >
+                        <ExternalLink className="h-3 w-3" />
                         Open Link
                       </a>
-                    </p>
+                    </div>
                   )}
                 </div>
               </CardContent>

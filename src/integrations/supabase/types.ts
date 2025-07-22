@@ -91,6 +91,41 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_description: string | null
+          event_name: string | null
+          id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_description?: string | null
+          event_name?: string | null
+          id?: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_description?: string | null
+          event_name?: string | null
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_memberships: {
         Row: {
           created_at: string
