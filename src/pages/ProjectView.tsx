@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentsPanel, DocumentsPanelRef } from '@/components/DocumentsPanel';
 import { ProjectLogs } from '@/components/ProjectLogs';
 import { HorizontalTimeline } from '@/components/HorizontalTimeline';
 import { EventCreation } from '@/components/EventCreation';
+import { ProjectNavigation, ProjectSection } from '@/components/ProjectNavigation';
+import { ProjectOverview } from '@/components/ProjectOverview';
 
 interface Project {
   id: string;
@@ -23,6 +25,7 @@ const ProjectView = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [documentsRef, setDocumentsRef] = useState<DocumentsPanelRef | null>(null);
+  const [currentSection, setCurrentSection] = useState<ProjectSection>('overview');
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -90,6 +93,39 @@ const ProjectView = () => {
     return null;
   }
 
+  const renderCurrentSection = () => {
+    switch (currentSection) {
+      case 'overview':
+        return <ProjectOverview projectId={project.id} />;
+      case 'documents':
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div></div>
+              <EventCreation projectId={project.id} />
+            </div>
+            <DocumentsPanel 
+              projectId={project.id} 
+              ref={setDocumentsRef}
+            />
+          </div>
+        );
+      case 'timeline':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">Project Timeline</h2>
+              <EventCreation projectId={project.id} />
+            </div>
+            <HorizontalTimeline projectId={project.id} />
+            <ProjectLogs projectId={project.id} />
+          </div>
+        );
+      default:
+        return <ProjectOverview projectId={project.id} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-6xl mx-auto">
@@ -105,33 +141,20 @@ const ProjectView = () => {
         </div>
 
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                {project.name || 'Untitled Project'}
-              </h1>
-              {project.description && (
-                <p className="text-muted-foreground">{project.description}</p>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <EventCreation projectId={project.id} />
-            </div>
-          </div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {project.name || 'Untitled Project'}
+          </h1>
+          {project.description && (
+            <p className="text-muted-foreground">{project.description}</p>
+          )}
         </div>
 
-        <HorizontalTimeline projectId={project.id} />
+        <ProjectNavigation 
+          currentSection={currentSection} 
+          onSectionChange={setCurrentSection} 
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-3">
-            <DocumentsPanel 
-              projectId={project.id} 
-              ref={setDocumentsRef}
-            />
-          </div>
-        </div>
-
-        <ProjectLogs projectId={project.id} />
+        {renderCurrentSection()}
       </div>
     </div>
   );

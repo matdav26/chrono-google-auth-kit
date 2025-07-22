@@ -463,9 +463,14 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                         </Button>
                       </div>
                     ) : (
-                      <CardTitle className="text-sm font-medium truncate">
-                        {doc.filename}
-                      </CardTitle>
+                      <div>
+                        <CardTitle className="text-sm font-medium truncate">
+                          {doc.filename}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {doc.doc_type.toUpperCase()} • {new Date(doc.uploaded_at).toLocaleDateString()}
+                        </p>
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center space-x-1">
@@ -534,12 +539,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-4">
-                 <div className="text-xs text-muted-foreground space-y-1">
-                   <p>Type: {doc.doc_type.toUpperCase()}</p>
-                   <p>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
-                 </div>
-              </CardContent>
             </Card>
           ))}
         </div>

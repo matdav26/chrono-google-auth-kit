@@ -18,9 +18,10 @@ interface TimelineItem {
 
 interface HorizontalTimelineProps {
   projectId: string;
+  preview?: boolean;
 }
 
-export const HorizontalTimeline = ({ projectId }: HorizontalTimelineProps) => {
+export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTimelineProps) => {
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -108,7 +109,8 @@ export const HorizontalTimeline = ({ projectId }: HorizontalTimelineProps) => {
         })),
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      setItems(timelineItems);
+      // If in preview mode, limit to latest 5 items
+      setItems(preview ? timelineItems.slice(0, 5) : timelineItems);
     } catch (err) {
       console.error('Error fetching timeline items:', err);
     } finally {
@@ -184,12 +186,14 @@ export const HorizontalTimeline = ({ projectId }: HorizontalTimelineProps) => {
   }
 
   return (
-    <Card className="mb-8">
+    <Card className={preview ? "mb-0" : "mb-8"}>
       <CardContent className="p-6">
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Project Timeline</h3>
-          <p className="text-sm text-muted-foreground">Major milestones and file uploads</p>
-        </div>
+        {!preview && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Project Timeline</h3>
+            <p className="text-sm text-muted-foreground">Major milestones and file uploads</p>
+          </div>
+        )}
         
         <div className="relative">
           {/* Navigation Arrows */}

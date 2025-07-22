@@ -4,8 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
-import { FileText, ExternalLink, Upload, Trash2, Edit3, Clock, Loader2, ChevronDown, Calendar, Activity } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { FileText, ExternalLink, Upload, Trash2, Edit3, Clock, Loader2, ChevronDown, Calendar, Activity, Search, Filter } from 'lucide-react';
+import { formatDistanceToNow, format, isToday, isYesterday, isThisWeek, subWeeks } from 'date-fns';
 
 interface ActivityLog {
   id: string;
@@ -30,6 +32,8 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchActivities();
@@ -145,6 +149,65 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
     );
   }
 
+  const filterOptions = [
+    { value: 'all', label: 'All Activities' },
+    { value: 'uploads', label: 'File Uploads' },
+    { value: 'events', label: 'Events' },
+    { value: 'renames', label: 'Renames' },
+    { value: 'deletions', label: 'Deletions' },
+  ];
+
+  const filteredActivities = activities.filter(activity => {
+    // Search filter
+    const matchesSearch = searchTerm === '' || 
+      activity.resource_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      getActivityMessage(activity).toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Type filter
+    let matchesFilter = true;
+    switch (selectedFilter) {
+      case 'uploads':
+        matchesFilter = activity.action === 'uploaded' || activity.action === 'created';
+        break;
+      case 'events':
+        matchesFilter = activity.resource_type === 'event';
+        break;
+      case 'renames':
+        matchesFilter = activity.action === 'renamed';
+        break;
+      case 'deletions':
+        matchesFilter = activity.action === 'deleted';
+        break;
+      default:
+        matchesFilter = true;
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const groupedActivities = filteredActivities.reduce((groups, activity) => {
+    const date = new Date(activity.created_at);
+    let groupKey: string;
+
+    if (isToday(date)) {
+      groupKey = 'Today';
+    } else if (isYesterday(date)) {
+      groupKey = 'Yesterday';
+    } else if (isThisWeek(date)) {
+      groupKey = 'This Week';
+    } else if (date > subWeeks(new Date(), 1)) {
+      groupKey = 'Last Week';
+    } else {
+      groupKey = format(date, 'MMMM yyyy');
+    }
+
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(activity);
+    return groups;
+  }, {} as Record<string, ActivityLog[]>);
+
   const activityCount = activities.length;
 
   return (
@@ -166,30 +229,71 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 px-4 pb-4">
+            {/* Search and Filter Controls */}
+            <div className="space-y-4 mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search activities..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                {filterOptions.map((option) => (
+                  <Badge
+                    key={option.value}
+                    variant={selectedFilter === option.value ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedFilter(option.value)}
+                  >
+                    {option.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
             {activities.length === 0 ? (
               <div className="text-center py-8">
                 <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No activity yet</p>
               </div>
+            ) : filteredActivities.length === 0 ? (
+              <div className="text-center py-8">
+                <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No activities match your search</p>
+              </div>
             ) : (
               <ScrollArea className="h-80">
-                <div className="space-y-4">
-                  {activities.map((activity, index) => (
-                    <div key={activity.id} className="flex items-start space-x-3 relative">
-                      <div className="flex-shrink-0 mt-1">
-                        {getActivityIcon(activity.action, activity.resource_type)}
+                <div className="space-y-6">
+                  {Object.entries(groupedActivities).map(([groupName, groupActivities]) => (
+                    <div key={groupName}>
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-3 sticky top-0 bg-background/80 backdrop-blur-sm py-1">
+                        {groupName}
+                      </h4>
+                      <div className="space-y-4">
+                        {groupActivities.map((activity, index) => (
+                          <div key={activity.id} className="flex items-start space-x-3 relative">
+                            <div className="flex-shrink-0 mt-1">
+                              {getActivityIcon(activity.action, activity.resource_type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground">
+                                {getActivityMessage(activity)}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                            {index < groupActivities.length - 1 && (
+                              <div className="absolute left-2 mt-8 h-4 w-px bg-border" />
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground">
-                          {getActivityMessage(activity)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                      {index < activities.length - 1 && (
-                        <div className="absolute left-2 mt-8 h-4 w-px bg-border" />
-                      )}
                     </div>
                   ))}
                 </div>
