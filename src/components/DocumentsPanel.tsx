@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Search, FileText, Trash2, ExternalLink, Loader2, Download, Edit } from 'lucide-react';
+import { Upload, Search, FileText, Trash2, ExternalLink, Loader2, Download, Edit, Link } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Document {
@@ -293,7 +293,7 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
 
   const getDocIcon = (docType: string) => {
     switch (docType) {
-      case 'url': return <ExternalLink className="h-4 w-4" />;
+      case 'url': return <Link className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };
@@ -421,10 +421,10 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDocuments.map((doc) => (
-            <Card key={doc.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-4">
+            <Card key={doc.id} className="hover:shadow-md transition-all duration-200 hover:border-primary/20">
+              <CardHeader className="pb-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2 flex-1 min-w-0">
                     {getDocIcon(doc.doc_type)}
@@ -527,26 +527,25 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-2">
-                <div className="text-xs text-muted-foreground space-y-2">
+              <CardContent className="pt-4">
+                <div className="text-xs text-muted-foreground space-y-3">
                   <div className="space-y-1">
                     <p>Type: {doc.doc_type.toUpperCase()}</p>
                     <p>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
                   </div>
-                  {doc.doc_type === 'url' && doc.raw_text && (
-                    <div className="pt-2 border-t border-border">
-                      <a 
-                        href={doc.raw_text} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Open Link
-                      </a>
-                    </div>
-                  )}
+                   {doc.doc_type === 'url' && doc.raw_text && (
+                     <div className="pt-3 border-t border-border">
+                       <a 
+                         href={doc.raw_text} 
+                         target="_blank" 
+                         rel="noopener noreferrer"
+                         className="inline-flex items-center gap-2 text-primary hover:underline text-xs"
+                         onClick={(e) => e.stopPropagation()}
+                       >
+                         <Link className="h-4 w-4" />
+                       </a>
+                     </div>
+                   )}
                 </div>
               </CardContent>
             </Card>

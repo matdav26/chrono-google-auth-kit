@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, FileText, ExternalLink, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, FileText, Loader2, ChevronLeft, ChevronRight, Link } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface TimelineItem {
@@ -23,6 +24,8 @@ export const HorizontalTimeline = ({ projectId }: HorizontalTimelineProps) => {
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     fetchTimelineItems();
@@ -115,13 +118,42 @@ export const HorizontalTimeline = ({ projectId }: HorizontalTimelineProps) => {
 
   const getItemIcon = (item: TimelineItem) => {
     if (item.type === 'event') {
-      return <Calendar className="h-4 w-4 text-blue-500" />;
+      return <Calendar className="h-5 w-5 text-blue-500" />;
     } else {
       return item.details?.doc_type === 'url' ? 
-        <ExternalLink className="h-4 w-4 text-green-500" /> : 
-        <FileText className="h-4 w-4 text-green-500" />;
+        <Link className="h-5 w-5 text-primary" /> : 
+        <FileText className="h-5 w-5 text-green-500" />;
     }
   };
+
+  const checkScrollButtons = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -280, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 280, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    checkScrollButtons();
+    const scrollElement = scrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', checkScrollButtons);
+      return () => scrollElement.removeEventListener('scroll', checkScrollButtons);
+    }
+  }, [items]);
 
   const handleItemClick = (item: TimelineItem) => {
     if (item.type === 'file' && item.details?.doc_type === 'url' && item.details?.raw_text) {
@@ -152,51 +184,89 @@ export const HorizontalTimeline = ({ projectId }: HorizontalTimelineProps) => {
   }
 
   return (
-    <Card className="mb-6">
-      <CardContent className="p-4">
-        <div className="mb-3">
-          <h3 className="text-sm font-medium text-foreground mb-1">Project Timeline</h3>
-          <p className="text-xs text-muted-foreground">Major milestones and file uploads</p>
+    <Card className="mb-8">
+      <CardContent className="p-6">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Project Timeline</h3>
+          <p className="text-sm text-muted-foreground">Major milestones and file uploads</p>
         </div>
-        <ScrollArea className="w-full">
-          <div className="flex space-x-4 pb-2" style={{ minWidth: `${items.length * 220}px` }}>
-            {items.map((item, index) => (
-              <div 
-                key={item.id} 
-                className={`flex-shrink-0 w-52 p-3 border border-border rounded-lg bg-background hover:bg-muted/50 transition-colors ${
-                  item.type === 'file' && item.details?.doc_type === 'url' ? 'cursor-pointer' : ''
-                }`}
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  {getItemIcon(item)}
-                  <Badge variant="outline" className="text-xs">
-                    {item.type === 'event' ? 'Event' : 'File Upload'}
-                  </Badge>
+        
+        <div className="relative">
+          {/* Navigation Arrows */}
+          {canScrollLeft && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full h-10 w-10 p-0 bg-background/80 backdrop-blur-sm border-border/50 hover:bg-muted"
+              onClick={scrollLeft}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {canScrollRight && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full h-10 w-10 p-0 bg-background/80 backdrop-blur-sm border-border/50 hover:bg-muted"
+              onClick={scrollRight}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Scrollable Timeline */}
+          <div
+            ref={scrollRef}
+            className="overflow-x-auto scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <div className="flex space-x-6 pb-4 px-8" style={{ minWidth: `${items.length * 280}px` }}>
+              {items.map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className={`flex-shrink-0 w-64 p-4 border border-border rounded-xl bg-card hover:bg-muted/30 transition-all duration-200 hover:shadow-sm ${
+                    item.type === 'file' && item.details?.doc_type === 'url' ? 'cursor-pointer hover:border-primary/30' : ''
+                  }`}
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-background border border-border">
+                      {getItemIcon(item)}
+                    </div>
+                    <Badge variant="outline" className="text-xs font-medium">
+                      {item.type === 'event' ? 'Event' : 'Upload'}
+                    </Badge>
+                  </div>
+                  
+                  <h4 className="text-sm font-semibold text-foreground line-clamp-2 mb-2 leading-relaxed">
+                    {item.title}
+                  </h4>
+                  
+                  {item.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                      {item.description}
+                    </p>
+                  )}
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-foreground">
+                      {format(new Date(item.date), 'MMM dd, yyyy')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
+                    </p>
+                  </div>
+                  
+                  {/* Connection line */}
+                  {index < items.length - 1 && (
+                    <div className="absolute right-0 top-1/2 w-6 h-px bg-border/60 transform -translate-y-1/2 translate-x-6" />
+                  )}
                 </div>
-                <h4 className="text-sm font-medium text-foreground line-clamp-2 mb-1">
-                  {item.title}
-                </h4>
-                {item.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                    {item.description}
-                  </p>
-                )}
-                <div className="flex flex-col gap-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {format(new Date(item.date), 'MMM dd, yyyy')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
-                  </p>
-                </div>
-                {index < items.length - 1 && (
-                  <div className="absolute right-0 top-1/2 w-4 h-px bg-border transform -translate-y-1/2 translate-x-4" />
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
