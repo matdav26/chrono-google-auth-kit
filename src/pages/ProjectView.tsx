@@ -99,16 +99,10 @@ const ProjectView = () => {
         return <ProjectOverview projectId={project.id} onSectionChange={setCurrentSection} />;
       case 'documents':
         return (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <EventCreation projectId={project.id} />
-              <div></div>
-            </div>
-            <DocumentsPanel 
-              projectId={project.id} 
-              ref={setDocumentsRef}
-            />
-          </div>
+          <DocumentsPanel 
+            projectId={project.id} 
+            ref={setDocumentsRef}
+          />
         );
       case 'timeline':
         return (
