@@ -109,8 +109,8 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
         })),
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      // If in preview mode, limit to latest 5 items
-      setItems(preview ? timelineItems.slice(0, 5) : timelineItems);
+      // If in preview mode, limit to latest 3 items
+      setItems(preview ? timelineItems.slice(0, 3) : timelineItems);
     } catch (err) {
       console.error('Error fetching timeline items:', err);
     } finally {

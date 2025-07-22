@@ -96,13 +96,13 @@ const ProjectView = () => {
   const renderCurrentSection = () => {
     switch (currentSection) {
       case 'overview':
-        return <ProjectOverview projectId={project.id} />;
+        return <ProjectOverview projectId={project.id} onSectionChange={setCurrentSection} />;
       case 'documents':
         return (
           <div>
             <div className="flex items-center justify-between mb-6">
-              <div></div>
               <EventCreation projectId={project.id} />
+              <div></div>
             </div>
             <DocumentsPanel 
               projectId={project.id} 
