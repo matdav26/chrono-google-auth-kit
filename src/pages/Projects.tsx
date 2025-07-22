@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Plus, Search, Eye, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Project {
@@ -18,6 +19,9 @@ const Projects = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -82,6 +86,56 @@ const Projects = () => {
     }
   };
 
+  const handleRenameProject = async (projectId: string) => {
+    if (!editingName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ name: editingName.trim() })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project renamed successfully",
+      });
+
+      setEditingProject(null);
+      setEditingName('');
+      
+      // Update local state
+      setProjects(prev => prev.map(p => 
+        p.id === projectId ? { ...p, name: editingName.trim() } : p
+      ));
+    } catch (err) {
+      console.error('Error renaming project:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to rename project",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEditing = (project: Project) => {
+    setEditingProject(project.id);
+    setEditingName(project.name);
+  };
+
+  const filteredProjects = projects.filter(project =>
+    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -104,59 +158,136 @@ const Projects = () => {
 
   return (
     <div className="min-h-screen bg-background p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-foreground mb-8">Your Projects</h1>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Your Project Workspace</h1>
+          <Button onClick={() => navigate('/new-project')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Project
+          </Button>
+        </div>
         
-        {projects.length === 0 ? (
-          <p className="text-muted-foreground">No projects found.</p>
+        {projects.length > 0 && (
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        )}
+        
+        {filteredProjects.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              {projects.length === 0 ? 'No projects found.' : 'No projects match your search.'}
+            </p>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {projects.map((project) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="p-4 border border-border rounded-lg bg-card"
+                className="p-6 border border-border rounded-lg bg-card hover:shadow-md transition-all duration-200 hover:border-primary/20"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)}>
-                    <h2 className="text-lg font-semibold text-card-foreground hover:text-primary transition-colors">
-                      {project.name || 'Untitled project'}
-                    </h2>
-                    {project.description && (
-                      <p className="text-muted-foreground mt-2">{project.description}</p>
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 mb-4">
+                    {editingProject === project.id ? (
+                      <div className="mb-3">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="text-lg font-semibold"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRenameProject(project.id);
+                            if (e.key === 'Escape') setEditingProject(null);
+                          }}
+                          autoFocus
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleRenameProject(project.id)}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingProject(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <h2 className="text-lg font-semibold text-card-foreground mb-3 line-clamp-2">
+                        {project.name || 'Untitled project'}
+                      </h2>
                     )}
+                    {project.description && (
+                      <p className="text-muted-foreground text-sm line-clamp-3 mb-3">{project.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Created {new Date(project.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                  
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
                         size="sm"
-                        disabled={deleting === project.id}
+                        onClick={() => navigate(`/projects/${project.id}`)}
                       >
-                        {deleting === project.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{project.name || 'Untitled project'}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditing(project)}
+                        disabled={editingProject === project.id}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          disabled={deleting === project.id}
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          {deleting === project.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{project.name || 'Untitled project'}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </div>
             ))}

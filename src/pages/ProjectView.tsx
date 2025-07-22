@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { DocumentsPanel, DocumentsPanelRef } from '@/components/DocumentsPanel';
 import { ProjectLogs } from '@/components/ProjectLogs';
 import { HorizontalTimeline } from '@/components/HorizontalTimeline';
 import { EventCreation } from '@/components/EventCreation';
@@ -22,6 +22,7 @@ const ProjectView = () => {
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [documentsRef, setDocumentsRef] = useState<DocumentsPanelRef | null>(null);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -113,7 +114,13 @@ const ProjectView = () => {
                 <p className="text-muted-foreground">{project.description}</p>
               )}
             </div>
-            <EventCreation projectId={project.id} />
+            <div className="flex items-center gap-3">
+              <EventCreation projectId={project.id} />
+              <Button onClick={() => documentsRef?.openUpload()}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -121,7 +128,10 @@ const ProjectView = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-3">
-            <DocumentsPanel projectId={project.id} />
+            <DocumentsPanel 
+              projectId={project.id} 
+              ref={setDocumentsRef}
+            />
           </div>
         </div>
 

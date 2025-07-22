@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,11 @@ interface DocumentsPanelProps {
   projectId: string;
 }
 
-export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
+export interface DocumentsPanelRef {
+  openUpload: () => void;
+}
+
+export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>(({ projectId }, ref) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -36,6 +40,10 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
   const [editingName, setEditingName] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useImperativeHandle(ref, () => ({
+    openUpload: () => setUploadDialog(true)
+  }), []);
 
   useEffect(() => {
     fetchDocuments();
@@ -310,7 +318,9 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Documents</h2>
-        
+      </div>
+      
+      <div className="flex justify-end">
         <Dialog open={uploadDialog} onOpenChange={setUploadDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -470,15 +480,7 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    {doc.doc_type === 'url' && doc.raw_text ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(doc.raw_text, '_blank', 'noopener,noreferrer')}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    ) : doc.doc_type !== 'url' && (
+                    {doc.doc_type !== 'url' ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -490,6 +492,14 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
                         ) : (
                           <Download className="h-4 w-4" />
                         )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(doc.raw_text, '_blank', 'noopener,noreferrer')}
+                      >
+                        <Link className="h-4 w-4" />
                       </Button>
                     )}
                     <AlertDialog>
@@ -528,25 +538,10 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="text-xs text-muted-foreground space-y-3">
-                  <div className="space-y-1">
-                    <p>Type: {doc.doc_type.toUpperCase()}</p>
-                    <p>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
-                  </div>
-                   {doc.doc_type === 'url' && doc.raw_text && (
-                     <div className="pt-3 border-t border-border">
-                       <a 
-                         href={doc.raw_text} 
-                         target="_blank" 
-                         rel="noopener noreferrer"
-                         className="inline-flex items-center gap-2 text-primary hover:underline text-xs"
-                         onClick={(e) => e.stopPropagation()}
-                       >
-                         <Link className="h-4 w-4" />
-                       </a>
-                     </div>
-                   )}
-                </div>
+                 <div className="text-xs text-muted-foreground space-y-1">
+                   <p>Type: {doc.doc_type.toUpperCase()}</p>
+                   <p>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
+                 </div>
               </CardContent>
             </Card>
           ))}
@@ -554,4 +549,4 @@ export const DocumentsPanel = ({ projectId }: DocumentsPanelProps) => {
       )}
     </div>
   );
-};
+});
