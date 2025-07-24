@@ -122,15 +122,21 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           throw new Error('Only PDF, DOCX, and XLSX files are allowed');
         }
 
-        // Upload file to storage
-        const fileExt = file.name.split('.').pop();
-        storagePath = `${projectId}/${Date.now()}_${filename}.${fileExt}`;
+        // Use exact filename provided by user
+        const userFilename = filename.trim();
+        storagePath = `${projectId}/${userFilename}`;
         
         const { error: uploadError } = await supabase.storage
           .from('documents')
           .upload(storagePath, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          // Handle duplicate filename error
+          if (uploadError.message.includes('already exists') || uploadError.message.includes('duplicate') || uploadError.message.includes('The resource already exists')) {
+            throw new Error('A file with this name already exists. Please choose a different name.');
+          }
+          throw uploadError;
+        }
       }
 
       // Insert document record
@@ -138,7 +144,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .insert({
           project_id: projectId,
-          filename: uploadType === 'file' ? storagePath?.split('/').pop() || filename.trim() : filename.trim(),
+          filename: filename.trim(),
           doc_type: getDocType(uploadType === 'file' ? file!.name : url, uploadType === 'url'),
           raw_text: uploadType === 'url' ? url : null,
         });
@@ -184,7 +190,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .list(projectId);
 
-      const storageFile = files?.find(f => f.name.includes(filename));
+      const storageFile = files?.find(f => f.name === filename);
       if (storageFile) {
         await supabase.storage
           .from('documents')
@@ -220,7 +226,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .list(projectId);
 
-      const storageFile = files?.find(f => f.name.includes(document.filename));
+      const storageFile = files?.find(f => f.name === document.filename);
       if (!storageFile) {
         throw new Error('File not found in storage');
       }
