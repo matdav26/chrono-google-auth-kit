@@ -122,8 +122,8 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           throw new Error('Only PDF, DOCX, and XLSX files are allowed');
         }
 
-        // Extract file extension and create full filename
-        const fileExt = file.name.split('.').pop();
+        // Extract file extension from original file and ensure it's preserved
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
         const userFilename = filename.trim();
         const fullFilename = `${userFilename}.${fileExt}`;
         storagePath = `${projectId}/${fullFilename}`;
