@@ -138,7 +138,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .insert({
           project_id: projectId,
-          filename: filename.trim(),
+          filename: uploadType === 'file' ? storagePath?.split('/').pop() || filename.trim() : filename.trim(),
           doc_type: getDocType(uploadType === 'file' ? file!.name : url, uploadType === 'url'),
           raw_text: uploadType === 'url' ? url : null,
         });
