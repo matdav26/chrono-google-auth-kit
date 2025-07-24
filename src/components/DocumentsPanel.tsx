@@ -122,9 +122,11 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           throw new Error('Only PDF, DOCX, and XLSX files are allowed');
         }
 
-        // Use exact filename provided by user
+        // Extract file extension and create full filename
+        const fileExt = file.name.split('.').pop();
         const userFilename = filename.trim();
-        storagePath = `${projectId}/${userFilename}`;
+        const fullFilename = `${userFilename}.${fileExt}`;
+        storagePath = `${projectId}/${fullFilename}`;
         
         const { error: uploadError } = await supabase.storage
           .from('documents')
@@ -144,7 +146,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .insert({
           project_id: projectId,
-          filename: filename.trim(),
+          filename: uploadType === 'file' ? storagePath?.split('/').pop() || filename.trim() : filename.trim(),
           doc_type: getDocType(uploadType === 'file' ? file!.name : url, uploadType === 'url'),
           raw_text: uploadType === 'url' ? url : null,
         });
