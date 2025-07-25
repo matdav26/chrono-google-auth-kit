@@ -114,6 +114,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
     try {
       let storagePath: string | null = null;
+      let documentFilename = filename.trim(); // Default for URLs
       
       if (uploadType === 'file' && file) {
         // Validate file type
@@ -126,6 +127,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         const fileExt = file.name.split('.').pop()?.toLowerCase();
         const userFilename = filename.trim();
         const fullFilename = `${userFilename}.${fileExt}`;
+        documentFilename = fullFilename; // Use full filename with extension for database
         storagePath = `${projectId}/${fullFilename}`;
         
         const { error: uploadError } = await supabase.storage
@@ -146,7 +148,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .insert({
           project_id: projectId,
-          filename: uploadType === 'file' ? storagePath?.split('/').pop() || filename.trim() : filename.trim(),
+          filename: documentFilename,
           doc_type: getDocType(uploadType === 'file' ? file!.name : url, uploadType === 'url'),
           raw_text: uploadType === 'url' ? url : null,
         });
