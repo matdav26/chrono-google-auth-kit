@@ -54,6 +54,7 @@ export type Database = {
           embeddings: number[] | null
           filename: string | null
           id: string
+          processed: boolean | null
           project_id: string
           raw_text: string | null
           summary: string | null
@@ -65,6 +66,7 @@ export type Database = {
           embeddings?: number[] | null
           filename?: string | null
           id?: string
+          processed?: boolean | null
           project_id: string
           raw_text?: string | null
           summary?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           embeddings?: number[] | null
           filename?: string | null
           id?: string
+          processed?: boolean | null
           project_id?: string
           raw_text?: string | null
           summary?: string | null
