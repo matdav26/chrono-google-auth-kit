@@ -52,15 +52,17 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
   const fetchDocuments = async () => {
     try {
-      const response = await api.get(
-        `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`
-      );
+      // Use Supabase Edge Function instead of external backend
+      const { data, error } = await supabase.functions.invoke('get-project-documents', {
+        body: { projectId },
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch documents: ${response.status}`);
+      if (error) {
+        throw new Error(`Failed to fetch documents: ${error.message}`);
       }
-
-      const data = await response.json();
       setDocuments(data || []);
     } catch (err) {
       console.error('Error fetching documents:', err);
