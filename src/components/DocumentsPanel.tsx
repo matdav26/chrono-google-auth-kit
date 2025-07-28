@@ -52,13 +52,15 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
   const fetchDocuments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('uploaded_at', { ascending: false });
+      const response = await api.get(
+        `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch documents: ${response.status}`);
+      }
+
+      const data = await response.json();
       setDocuments(data || []);
     } catch (err) {
       console.error('Error fetching documents:', err);
