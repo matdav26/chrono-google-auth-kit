@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -113,9 +114,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setUploading(true);
 
     try {
-      let storagePath: string | null = null;
-      let documentFilename = filename.trim(); // Default for URLs
-      
       if (uploadType === 'file' && file) {
         // Validate file type
         const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
@@ -123,37 +121,36 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           throw new Error('Only PDF, DOCX, and XLSX files are allowed');
         }
 
-        // Extract file extension from original file and ensure it's preserved
-        const fileExt = file.name.split('.').pop()?.toLowerCase();
-        const userFilename = filename.trim();
-        const fullFilename = `${userFilename}.${fileExt}`;
-        documentFilename = fullFilename; // Use full filename with extension for database
-        storagePath = `${projectId}/${fullFilename}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file);
+        // Create FormData for multipart/form-data upload
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('filename', filename.trim());
 
-        if (uploadError) {
-          // Handle duplicate filename error
-          if (uploadError.message.includes('already exists') || uploadError.message.includes('duplicate') || uploadError.message.includes('The resource already exists')) {
-            throw new Error('A file with this name already exists. Please choose a different name.');
+        // Upload to backend API
+        const response = await api.post(
+          `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
+          formData
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
+        }
+      } else if (uploadType === 'url') {
+        // For URLs, send as JSON
+        const response = await api.post(
+          `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
+          {
+            url: url.trim(),
+            filename: filename.trim(),
           }
-          throw uploadError;
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }
       }
-
-      // Insert document record
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          project_id: projectId,
-          filename: documentFilename,
-          doc_type: getDocType(uploadType === 'file' ? file!.name : url, uploadType === 'url'),
-          raw_text: uploadType === 'url' ? url : null,
-        });
-
-      if (insertError) throw insertError;
 
       toast({
         title: "Success",

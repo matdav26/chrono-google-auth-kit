@@ -16,8 +16,9 @@ export const authenticatedFetch = async (
   }
 
   // Merge headers with Authorization token
+  // Don't set Content-Type for FormData - let the browser set it with boundary
   const headers = {
-    'Content-Type': 'application/json',
+    ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...options.headers,
     'Authorization': `Bearer ${session.access_token}`,
   };
@@ -40,7 +41,7 @@ export const api = {
     authenticatedFetch(url, {
       ...options,
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
     
   put: (url: string, body?: any, options?: RequestInit) =>
