@@ -52,16 +52,15 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
   const fetchDocuments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('uploaded_at', { ascending: false });
+      const response = await api.get(
+        `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`
+      );
 
-      if (error) {
-        throw new Error(`Failed to fetch documents: ${error.message}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch documents: ${response.status}`);
       }
 
+      const data = await response.json();
       setDocuments(data || []);
     } catch (err) {
       console.error('Error fetching documents:', err);
@@ -119,76 +118,39 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     try {
       if (uploadType === 'file' && file) {
         // Validate file type
-        const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'];
+        const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
         if (!allowedTypes.includes(file.type)) {
-          throw new Error('Only PDF, DOCX, XLSX, and TXT files are allowed');
+          throw new Error('Only PDF, DOCX, and XLSX files are allowed');
         }
 
-        // Validate file size (10MB)
-        const maxSize = 10 * 1024 * 1024;
-        if (file.size > maxSize) {
-          throw new Error('File size must be less than 10MB');
+        // Create FormData for multipart/form-data upload
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('filename', filename.trim());
+
+        // Upload to backend API
+        const response = await api.post(
+          `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
+          formData
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }
-
-        // Create unique filename to avoid conflicts
-        const fileExtension = file.name.split('.').pop();
-        const uniqueFilename = `${Date.now()}_${filename.trim()}.${fileExtension}`;
-        const storagePath = `${projectId}/${uniqueFilename}`;
-
-        // Upload file to Supabase storage
-        const { data: storageData, error: storageError } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file);
-
-        if (storageError) {
-          throw new Error(`Upload failed: ${storageError.message}`);
-        }
-
-        // Read file content for text extraction (basic implementation)
-        let rawText = '';
-        if (file.type === 'text/plain') {
-          rawText = await file.text();
-        } else {
-          // For other file types, we'll store the filename as placeholder
-          // In a real implementation, you'd want to extract text content
-          rawText = `File: ${file.name}`;
-        }
-
-        // Insert document record into database
-        const { data: docData, error: docError } = await supabase
-          .from('documents')
-          .insert({
-            project_id: projectId,
-            filename: filename.trim(),
-            doc_type: getDocType(file.name),
-            raw_text: rawText,
-            processed: true
-          })
-          .select()
-          .single();
-
-        if (docError) {
-          // Clean up storage file if database insert failed
-          await supabase.storage.from('documents').remove([storagePath]);
-          throw new Error(`Database error: ${docError.message}`);
-        }
-
       } else if (uploadType === 'url') {
-        // For URLs, store the URL in raw_text field
-        const { data: docData, error: docError } = await supabase
-          .from('documents')
-          .insert({
-            project_id: projectId,
+        // For URLs, send as JSON
+        const response = await api.post(
+          `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
+          {
+            url: url.trim(),
             filename: filename.trim(),
-            doc_type: 'url',
-            raw_text: url.trim(),
-            processed: true
-          })
-          .select()
-          .single();
+          }
+        );
 
-        if (docError) {
-          throw new Error(`Database error: ${docError.message}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }
       }
 
@@ -267,8 +229,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         .from('documents')
         .list(projectId);
 
-      // Find file that contains the document filename (since we prepend timestamp)
-      const storageFile = files?.find(f => f.name.includes(document.filename));
+      const storageFile = files?.find(f => f.name === document.filename);
       if (!storageFile) {
         throw new Error('File not found in storage');
       }
