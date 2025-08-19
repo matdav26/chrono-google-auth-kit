@@ -341,17 +341,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     doc.filename.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Debug logging
-  console.log('Documents loaded:', documents.length);
-  documents.forEach((doc, index) => {
-    console.log(`Document ${index + 1}:`, {
-      filename: doc.filename,
-      hasSummary: !!doc.summary,
-      summaryEmpty: !doc.summary || doc.summary.trim() === '',
-      summaryPreview: doc.summary ? doc.summary.substring(0, 50) + '...' : 'No summary'
-    });
-  });
-
   const getDocIcon = (docType: string) => {
     switch (docType) {
       case 'url': return <Link className="h-4 w-4" />;
@@ -528,21 +517,22 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                   </div>
                    <div className="flex items-center space-x-1">
                      {(!doc.summary || doc.summary.trim() === '') && (
-                       <>
-                         {console.log(`Sparkles button should show for ${doc.filename}:`, !doc.summary || doc.summary.trim() === '')}
-                         <Button
+                       <Button
                          variant="ghost"
                          size="sm"
                          onClick={() => handleGenerateSummary(doc.id)}
                          disabled={generatingSummary === doc.id}
+                         className="text-xs"
                        >
                          {generatingSummary === doc.id ? (
                            <Loader2 className="h-4 w-4 animate-spin" />
                          ) : (
-                           <Sparkles className="h-4 w-4" />
+                           <>
+                             <Sparkles className="h-4 w-4 mr-1" />
+                             AI Summary
+                           </>
                          )}
                        </Button>
-                       </>
                      )}
                      <Button
                       variant="ghost"
