@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, Search, FileText, Trash2, ExternalLink, Loader2, Download, Edit, Link } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,6 +41,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   const [editingDoc, setEditingDoc] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [generateSummary, setGenerateSummary] = useState(false);
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -127,6 +129,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         const formData = new FormData();
         formData.append('file', file);
         formData.append('filename', filename.trim());
+        formData.append('summarize', generateSummary.toString());
 
         // Upload to backend API
         const response = await api.post(
@@ -145,6 +148,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           {
             url: url.trim(),
             filename: filename.trim(),
+            summarize: generateSummary,
           }
         );
 
@@ -163,6 +167,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       setFilename('');
       setFile(null);
       setUrl('');
+      setGenerateSummary(false);
       fetchDocuments();
     } catch (err) {
       console.error('Error uploading document:', err);
@@ -384,16 +389,35 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
               ) : (
                 <div>
                   <Label htmlFor="url">URL</Label>
-                  <Input
-                    id="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://example.com/document or Figma link"
-                  />
-                </div>
-              )}
+                   <Input
+                     id="url"
+                     value={url}
+                     onChange={(e) => setUrl(e.target.value)}
+                     placeholder="https://example.com/document or Figma link"
+                   />
+                 </div>
+               )}
 
-              <div className="flex justify-end space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="generate-summary"
+                    checked={generateSummary}
+                    onCheckedChange={(checked) => setGenerateSummary(checked === true)}
+                  />
+                  <Label htmlFor="generate-summary" className="text-sm">
+                    Generate AI summary for this document
+                  </Label>
+                </div>
+               
+               {generateSummary && (
+                 <div className="bg-muted p-3 rounded-md">
+                   <p className="text-sm text-muted-foreground">
+                     This will create an AI-powered summary of the document content
+                   </p>
+                 </div>
+               )}
+
+               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"
                   onClick={() => setUploadDialog(false)}
