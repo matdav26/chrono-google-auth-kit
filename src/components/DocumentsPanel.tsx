@@ -231,9 +231,13 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setDownloading(document.id);
     
     try {
-      // Open the backend download endpoint in a new tab
-      const downloadUrl = `https://chronoboard-backend.onrender.com/api/documents/${document.id}/download`;
-      window.open(downloadUrl, '_blank');
+      // Use Supabase's built-in file serving
+      const publicUrl = supabase.storage
+        .from('documents')
+        .getPublicUrl(`${projectId}/${document.download_path}`)
+        .data.publicUrl;
+      
+      window.open(publicUrl, '_blank');
       
       toast({
         title: "Success",
