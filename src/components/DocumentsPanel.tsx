@@ -230,15 +230,21 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setDownloading(document.id);
     
     try {
-      // Use storage_path directly from document data
+      // Use storage_path from document data
       if (!document.storage_path) {
         throw new Error('No storage path found for this document');
       }
 
-      // Get download URL using the storage_path
+      // Remove 'documents/' prefix from storage_path if it exists
+      let filePath = document.storage_path;
+      if (filePath.startsWith('documents/')) {
+        filePath = filePath.substring('documents/'.length);
+      }
+
+      // Get download URL using the cleaned file path
       const { data } = await supabase.storage
         .from('documents')
-        .createSignedUrl(document.storage_path, 60);
+        .createSignedUrl(filePath, 60);
 
       if (data?.signedUrl) {
         // Create a temporary link and trigger download
