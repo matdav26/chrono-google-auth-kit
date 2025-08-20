@@ -238,31 +238,19 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
       console.log('Attempting to download with path:', document.download_path);
 
-      // First, try to check if file exists using storage_path as fallback
-      let filePath = document.download_path;
+      // Use the exact filename from storage_path as the file path
+      const filePath = document.storage_path ? document.storage_path.split('/').pop() : document.download_path;
       
-      // Try the download_path first
-      let { data, error } = await supabase.storage
+      console.log('Attempting to download file:', filePath);
+      
+      // Create signed URL for download
+      const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(filePath, 60);
-
-      // If that fails and we have a storage_path, try using just the filename from storage_path
-      if (error && document.storage_path) {
-        console.log('First attempt failed, trying with storage_path:', document.storage_path);
-        // Extract just the filename from storage_path
-        const fileName = document.storage_path.split('/').pop();
-        if (fileName) {
-          ({ data, error } = await supabase.storage
-            .from('documents')
-            .createSignedUrl(fileName, 60));
-          filePath = fileName;
-        }
-      }
 
       console.log('Supabase storage response:', { data, error, filePath });
 
       if (error) {
-        // Log the exact error for debugging
         console.error('Storage API error details:', error);
         throw new Error(`Storage error: ${error.message}`);
       }
@@ -272,8 +260,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         // Create a temporary link and trigger download
         const link = window.document.createElement('a');
         link.href = data.signedUrl;
-        link.download = document.filename || document.download_path;
-        link.target = '_blank'; // Try opening in new tab as fallback
+        link.download = document.filename || filePath;
         window.document.body.appendChild(link);
         link.click();
         window.document.body.removeChild(link);
