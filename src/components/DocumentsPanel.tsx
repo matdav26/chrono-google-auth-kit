@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, Search, FileText, Trash2, ExternalLink, Loader2, Download, Edit, Link, Sparkles } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Upload, Search, FileText, Trash2, ExternalLink, Loader2, Download, Edit, Link, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Document {
@@ -43,6 +44,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   const [editingName, setEditingName] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState<string | null>(null);
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -337,6 +339,16 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setEditingName(doc.filename);
   };
 
+  const toggleSummary = (docId: string) => {
+    const newExpanded = new Set(expandedSummaries);
+    if (newExpanded.has(docId)) {
+      newExpanded.delete(docId);
+    } else {
+      newExpanded.add(docId);
+    }
+    setExpandedSummaries(newExpanded);
+  };
+
   const filteredDocuments = documents.filter(doc =>
     doc.filename.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -597,9 +609,40 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                </div>
-              </CardHeader>
-            </Card>
+                 </div>
+                
+                {doc.summary && doc.summary.trim() !== '' && (
+                  <div className="mt-3">
+                    <Collapsible 
+                      open={expandedSummaries.has(doc.id)} 
+                      onOpenChange={() => toggleSummary(doc.id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-between text-xs px-0 hover:bg-transparent"
+                        >
+                          <span>
+                            {expandedSummaries.has(doc.id) ? 'Hide Summary' : 'Show Summary'}
+                          </span>
+                          {expandedSummaries.has(doc.id) ? (
+                            <ChevronUp className="h-3 w-3" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap">
+                          {doc.summary}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                )}
+               </CardHeader>
+             </Card>
           ))}
         </div>
       )}
