@@ -231,11 +231,33 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setDownloading(document.id);
     
     try {
+      // Debug logging
+      console.log('Document data:', document);
+      console.log('Project ID:', projectId);
+      console.log('Download path:', document.download_path);
+      
+      // Check if download_path exists
+      if (!document.download_path) {
+        throw new Error('No download path available for this document');
+      }
+      
+      const filePath = `${projectId}/${document.download_path}`;
+      console.log('Full file path:', filePath);
+      
       // Use Supabase's built-in file serving
       const publicUrl = supabase.storage
         .from('documents')
-        .getPublicUrl(`${projectId}/${document.download_path}`)
+        .getPublicUrl(filePath)
         .data.publicUrl;
+      
+      console.log('Generated public URL:', publicUrl);
+      
+      // Test if file exists first
+      const { data: fileExists, error: checkError } = await supabase.storage
+        .from('documents')
+        .list(projectId, { search: document.download_path });
+      
+      console.log('File exists check:', { fileExists, checkError });
       
       window.open(publicUrl, '_blank');
       
@@ -247,7 +269,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       console.error('Error downloading file:', err);
       toast({
         title: "Error",
-        description: "Failed to open download link",
+        description: err instanceof Error ? err.message : "Failed to open download link",
         variant: "destructive",
       });
     } finally {
