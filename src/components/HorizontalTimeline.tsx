@@ -49,14 +49,32 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
       )
       .subscribe();
 
+    // Subscribe to real-time updates for documents (uploads)
+    const documentsChannel = supabase
+      .channel('documents-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'documents',
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => {
+          fetchTimelineItems();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(activityChannel);
+      supabase.removeChannel(documentsChannel);
     };
   }, [projectId]);
 
   const fetchTimelineItems = async () => {
     try {
-      // Fetch activity logs
+      // Fetch activity logs for deletions, renames, events etc.
       const { data: activities, error: activitiesError } = await supabase
         .from('activity_logs')
         .select('*')
@@ -65,8 +83,17 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
 
       if (activitiesError) throw activitiesError;
 
+      // Fetch documents for uploads (since backend uploads don't trigger activity logs)
+      const { data: documents, error: docsError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('uploaded_at', { ascending: false });
+
+      if (docsError) throw docsError;
+
       // Convert activities to timeline items
-      const timelineItems: TimelineItem[] = (activities || []).map(activity => ({
+      const activityItems: TimelineItem[] = (activities || []).map(activity => ({
         id: activity.id,
         type: activity.resource_type === 'event' ? 'event' as const : 'file' as const,
         action: activity.action,
@@ -76,8 +103,37 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
         details: activity.details || {},
       }));
 
+      // Convert documents to upload timeline items
+      const uploadItems: TimelineItem[] = (documents || []).map(doc => ({
+        id: `upload-${doc.id}`,
+        type: 'file' as const,
+        action: 'uploaded',
+        title: doc.filename || 'Unknown',
+        description: `${doc.doc_type === 'url' ? 'URL' : 'File'} uploaded`,
+        date: doc.uploaded_at,
+        details: { doc_type: doc.doc_type, raw_text: doc.raw_text },
+      }));
+
+      // Combine and sort by date, remove duplicates based on document name and close timestamps
+      const allItems = [...activityItems, ...uploadItems];
+      const uniqueItems = allItems.filter((item, index, arr) => {
+        // For uploads, check if there's a corresponding activity log entry within a short time window
+        if (item.action === 'uploaded') {
+          const hasActivityLog = arr.some(other => 
+            other.action === 'uploaded' && 
+            other.title === item.title && 
+            other.id !== item.id &&
+            Math.abs(new Date(other.date).getTime() - new Date(item.date).getTime()) < 60000 // 1 minute
+          );
+          return !hasActivityLog;
+        }
+        return true;
+      });
+
+      const sortedItems = uniqueItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
       // If in preview mode, limit to latest 3 items
-      setItems(preview ? timelineItems.slice(0, 3) : timelineItems);
+      setItems(preview ? sortedItems.slice(0, 3) : sortedItems);
     } catch (err) {
       console.error('Error fetching timeline items:', err);
     } finally {
