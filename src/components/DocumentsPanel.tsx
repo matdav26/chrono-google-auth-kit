@@ -262,14 +262,18 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       console.log('Supabase storage response:', { data, error, filePath });
 
       if (error) {
+        // Log the exact error for debugging
+        console.error('Storage API error details:', error);
         throw new Error(`Storage error: ${error.message}`);
       }
 
       if (data?.signedUrl) {
+        console.log('Successfully got signed URL:', data.signedUrl);
         // Create a temporary link and trigger download
         const link = window.document.createElement('a');
         link.href = data.signedUrl;
         link.download = document.filename || document.download_path;
+        link.target = '_blank'; // Try opening in new tab as fallback
         window.document.body.appendChild(link);
         link.click();
         window.document.body.removeChild(link);
