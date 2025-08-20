@@ -238,8 +238,8 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
       console.log('Attempting to download with path:', document.download_path);
 
-      // Use the exact filename from storage_path as the file path
-      const filePath = document.storage_path ? document.storage_path.split('/').pop() : document.download_path;
+      // Use the correct path format that Supabase storage expects
+      const filePath = `${projectId}/${document.download_path}`;
       
       console.log('Attempting to download file:', filePath);
       
