@@ -370,14 +370,35 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     }
   };
 
-  const getDocTypeLabel = (docType: string) => {
-    switch (docType) {
+  const getDocTypeLabel = (docType: string, filename?: string) => {
+    // First check the docType field
+    switch (docType?.toLowerCase()) {
       case 'url': return 'URL';
       case 'pdf': return 'PDF';
       case 'docx': return 'Word';
       case 'xlsx': return 'Excel';
-      default: return 'FILE';
+      case 'doc': return 'Word';
+      case 'xls': return 'Excel';
     }
+    
+    // If docType doesn't match, try to detect from filename
+    if (filename) {
+      const ext = filename.split('.').pop()?.toLowerCase();
+      switch (ext) {
+        case 'pdf': return 'PDF';
+        case 'docx': return 'Word';
+        case 'doc': return 'Word';
+        case 'xlsx': return 'Excel';
+        case 'xls': return 'Excel';
+        case 'txt': return 'Text';
+        case 'rtf': return 'RTF';
+        case 'ppt': return 'PowerPoint';
+        case 'pptx': return 'PowerPoint';
+      }
+    }
+    
+    // Fallback
+    return 'Document';
   };
 
   if (loading) {
@@ -535,7 +556,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                             {doc.filename}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {getDocTypeLabel(doc.doc_type)} • {new Date(doc.uploaded_at).toLocaleDateString()}
+                            {getDocTypeLabel(doc.doc_type, doc.filename)} • {new Date(doc.uploaded_at).toLocaleDateString()}
                           </p>
                         </div>
                       )}
