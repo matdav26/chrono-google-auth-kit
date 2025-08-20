@@ -236,24 +236,34 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         throw new Error('No download path found for this document');
       }
 
+      console.log('Attempting to download with path:', document.download_path);
+
       // Get download URL using the download_path
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(document.download_path, 60);
+
+      console.log('Supabase storage response:', { data, error });
+
+      if (error) {
+        throw new Error(`Storage error: ${error.message}`);
+      }
 
       if (data?.signedUrl) {
         // Create a temporary link and trigger download
         const link = window.document.createElement('a');
         link.href = data.signedUrl;
-        link.download = document.filename;
+        link.download = document.filename || document.download_path;
+        window.document.body.appendChild(link);
         link.click();
+        window.document.body.removeChild(link);
         
         toast({
           title: "Success",
           description: "File download started",
         });
       } else {
-        throw new Error('Failed to generate download URL');
+        throw new Error('Failed to generate download URL - no signed URL returned');
       }
     } catch (err) {
       console.error('Error downloading file:', err);
