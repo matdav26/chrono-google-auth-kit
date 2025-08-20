@@ -238,12 +238,28 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
       console.log('Attempting to download with path:', document.download_path);
 
-      // Get download URL using the download_path
-      const { data, error } = await supabase.storage
+      // First, try to check if file exists using storage_path as fallback
+      let filePath = document.download_path;
+      
+      // Try the download_path first
+      let { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(document.download_path, 60);
+        .createSignedUrl(filePath, 60);
 
-      console.log('Supabase storage response:', { data, error });
+      // If that fails and we have a storage_path, try using just the filename from storage_path
+      if (error && document.storage_path) {
+        console.log('First attempt failed, trying with storage_path:', document.storage_path);
+        // Extract just the filename from storage_path
+        const fileName = document.storage_path.split('/').pop();
+        if (fileName) {
+          ({ data, error } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(fileName, 60));
+          filePath = fileName;
+        }
+      }
+
+      console.log('Supabase storage response:', { data, error, filePath });
 
       if (error) {
         throw new Error(`Storage error: ${error.message}`);
