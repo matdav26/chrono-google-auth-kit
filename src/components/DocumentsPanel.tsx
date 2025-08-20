@@ -374,7 +374,20 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   const getDocIcon = (docType: string) => {
     switch (docType) {
       case 'url': return <Link className="h-4 w-4" />;
+      case 'pdf': return <FileText className="h-4 w-4" />;
+      case 'docx': return <FileText className="h-4 w-4" />;
+      case 'xlsx': return <FileText className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const getDocTypeLabel = (docType: string) => {
+    switch (docType) {
+      case 'url': return 'URL';
+      case 'pdf': return 'PDF';
+      case 'docx': return 'Word';
+      case 'xlsx': return 'Excel';
+      default: return 'FILE';
     }
   };
 
@@ -503,131 +516,143 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDocuments.map((doc) => (
             <Card key={doc.id} className="hover:shadow-md transition-all duration-200 hover:border-primary/20">
-              <CardHeader className="pb-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+              <CardHeader className="pb-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start space-x-2 flex-1 min-w-0">
                     {getDocIcon(doc.doc_type)}
-                    {editingDoc === doc.id ? (
-                      <div className="flex items-center space-x-2 flex-1">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="h-8 text-sm"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRename(doc.id);
-                            if (e.key === 'Escape') setEditingDoc(null);
-                          }}
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRename(doc.id)}
-                        >
-                          ✓
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setEditingDoc(null)}
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                    ) : (
-                      <div>
-                        <CardTitle className="text-sm font-medium truncate">
-                          {doc.filename}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {doc.doc_type.toUpperCase()} • {new Date(doc.uploaded_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      {editingDoc === doc.id ? (
+                        <div className="flex items-center space-x-1">
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="h-7 text-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRename(doc.id);
+                              if (e.key === 'Escape') setEditingDoc(null);
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRename(doc.id)}
+                            className="h-7 w-7 p-0"
+                          >
+                            ✓
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingDoc(null)}
+                            className="h-7 w-7 p-0"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      ) : (
+                        <div>
+                          <CardTitle className="text-sm font-medium truncate leading-tight">
+                            {doc.filename}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {getDocTypeLabel(doc.doc_type)} • {new Date(doc.uploaded_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                   <div className="flex items-center space-x-1">
-                     {(!doc.summary || doc.summary.trim() === '') && (
+                  <div className="flex items-center space-x-1 flex-shrink-0">
+                    <Button
+                     variant="ghost"
+                     size="sm"
+                     onClick={() => startEditing(doc)}
+                     disabled={editingDoc === doc.id}
+                     className="h-8 w-8 p-0"
+                   >
+                     <Edit className="h-3.5 w-3.5" />
+                   </Button>
+                   {doc.doc_type !== 'url' ? (
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => handleDownload(doc)}
+                       disabled={downloading === doc.id}
+                       className="h-8 w-8 p-0"
+                     >
+                       {downloading === doc.id ? (
+                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                       ) : (
+                         <Download className="h-3.5 w-3.5" />
+                       )}
+                     </Button>
+                   ) : (
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => window.open(doc.raw_text, '_blank', 'noopener,noreferrer')}
+                       className="h-8 w-8 p-0"
+                     >
+                       <Link className="h-3.5 w-3.5" />
+                     </Button>
+                   )}
+                   <AlertDialog>
+                     <AlertDialogTrigger asChild>
                        <Button
                          variant="ghost"
                          size="sm"
-                         onClick={() => handleGenerateSummary(doc.id)}
-                         disabled={generatingSummary === doc.id}
-                         className="text-xs"
+                         disabled={deleting === doc.id}
+                         className="h-8 w-8 p-0"
                        >
-                         {generatingSummary === doc.id ? (
-                           <Loader2 className="h-4 w-4 animate-spin" />
+                         {deleting === doc.id ? (
+                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                          ) : (
-                           <>
-                             <Sparkles className="h-4 w-4 mr-1" />
-                             AI Summary
-                           </>
+                           <Trash2 className="h-3.5 w-3.5" />
                          )}
                        </Button>
-                     )}
-                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startEditing(doc)}
-                      disabled={editingDoc === doc.id}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {doc.doc_type !== 'url' ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(doc)}
-                        disabled={downloading === doc.id}
-                      >
-                        {downloading === doc.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(doc.raw_text, '_blank', 'noopener,noreferrer')}
-                      >
-                        <Link className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={deleting === doc.id}
-                        >
-                          {deleting === doc.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{doc.filename}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(doc.id, doc.filename)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                     </AlertDialogTrigger>
+                     <AlertDialogContent>
+                       <AlertDialogHeader>
+                         <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                         <AlertDialogDescription>
+                           Are you sure you want to delete "{doc.filename}"? This action cannot be undone.
+                         </AlertDialogDescription>
+                       </AlertDialogHeader>
+                       <AlertDialogFooter>
+                         <AlertDialogCancel>Cancel</AlertDialogCancel>
+                         <AlertDialogAction
+                           onClick={() => handleDelete(doc.id, doc.filename)}
+                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                         >
+                           Delete
+                         </AlertDialogAction>
+                       </AlertDialogFooter>
+                     </AlertDialogContent>
+                   </AlertDialog>
                  </div>
+                </div>
+                
+                {(!doc.summary || doc.summary.trim() === '') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateSummary(doc.id)}
+                    disabled={generatingSummary === doc.id}
+                    className="w-full h-8 text-xs"
+                  >
+                    {generatingSummary === doc.id ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        Generate AI Summary
+                      </>
+                    )}
+                  </Button>
+                )}
                 
                 {doc.summary && doc.summary.trim() !== '' && (
                   <div className="mt-3">
