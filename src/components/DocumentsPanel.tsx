@@ -19,6 +19,7 @@ interface Document {
   uploaded_at: string;
   raw_text?: string;
   summary?: string;
+  storage_path?: string;
 }
 
 interface DocumentsPanelProps {
@@ -229,20 +230,15 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setDownloading(document.id);
     
     try {
-      // List files in the project folder to find the actual stored file
-      const { data: files } = await supabase.storage
-        .from('documents')
-        .list(projectId);
-
-      const storageFile = files?.find(f => f.name === document.filename);
-      if (!storageFile) {
-        throw new Error('File not found in storage');
+      // Use storage_path directly from document data
+      if (!document.storage_path) {
+        throw new Error('No storage path found for this document');
       }
 
-      // Get download URL
+      // Get download URL using the storage_path
       const { data } = await supabase.storage
         .from('documents')
-        .createSignedUrl(`${projectId}/${storageFile.name}`, 60);
+        .createSignedUrl(document.storage_path, 60);
 
       if (data?.signedUrl) {
         // Create a temporary link and trigger download
@@ -255,6 +251,8 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           title: "Success",
           description: "File download started",
         });
+      } else {
+        throw new Error('Failed to generate download URL');
       }
     } catch (err) {
       console.error('Error downloading file:', err);
