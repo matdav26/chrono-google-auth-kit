@@ -4,12 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, FileText, Loader2, ChevronLeft, ChevronRight, Link } from 'lucide-react';
+import { Calendar, FileText, Loader2, ChevronLeft, ChevronRight, Link, Upload, Trash2, Edit3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface TimelineItem {
   id: string;
   type: 'event' | 'file';
+  action: string;
   title: string;
   description?: string;
   date: string;
@@ -31,31 +32,15 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
   useEffect(() => {
     fetchTimelineItems();
 
-    // Subscribe to real-time updates for both events and documents
-    const eventsChannel = supabase
-      .channel('events-changes')
+    // Subscribe to real-time updates for activity logs
+    const activityChannel = supabase
+      .channel('activity-logs-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'events',
-          filter: `project_id=eq.${projectId}`,
-        },
-        () => {
-          fetchTimelineItems();
-        }
-      )
-      .subscribe();
-
-    const documentsChannel = supabase
-      .channel('documents-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'documents',
+          table: 'activity_logs',
           filter: `project_id=eq.${projectId}`,
         },
         () => {
@@ -65,49 +50,31 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
       .subscribe();
 
     return () => {
-      supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(documentsChannel);
+      supabase.removeChannel(activityChannel);
     };
   }, [projectId]);
 
   const fetchTimelineItems = async () => {
     try {
-      // Fetch events
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
+      // Fetch activity logs
+      const { data: activities, error: activitiesError } = await supabase
+        .from('activity_logs')
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (eventsError) throw eventsError;
+      if (activitiesError) throw activitiesError;
 
-      // Fetch documents (only uploaded files, not just any activity)
-      const { data: documents, error: docsError } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('uploaded_at', { ascending: false });
-
-      if (docsError) throw docsError;
-
-      // Combine and sort by date
-      const timelineItems: TimelineItem[] = [
-        ...(events || []).map(event => ({
-          id: event.id,
-          type: 'event' as const,
-          title: event.event_name,
-          description: event.event_description,
-          date: event.created_at,
-        })),
-        ...(documents || []).map(doc => ({
-          id: doc.id,
-          type: 'file' as const,
-          title: doc.filename,
-          description: `${doc.doc_type.toUpperCase()} file uploaded`,
-          date: doc.uploaded_at,
-          details: { doc_type: doc.doc_type, raw_text: doc.raw_text },
-        })),
-      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      // Convert activities to timeline items
+      const timelineItems: TimelineItem[] = (activities || []).map(activity => ({
+        id: activity.id,
+        type: activity.resource_type === 'event' ? 'event' as const : 'file' as const,
+        action: activity.action,
+        title: activity.resource_name || 'Unknown',
+        description: getActivityDescription(activity),
+        date: activity.created_at,
+        details: activity.details || {},
+      }));
 
       // If in preview mode, limit to latest 3 items
       setItems(preview ? timelineItems.slice(0, 3) : timelineItems);
@@ -118,13 +85,61 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
     }
   };
 
+  const getActivityDescription = (activity: any) => {
+    const { action, resource_type, details } = activity;
+    
+    switch (action) {
+      case 'uploaded':
+        return `${resource_type === 'url' ? 'URL' : 'File'} uploaded`;
+      case 'deleted':
+        return `${resource_type === 'url' ? 'URL' : 'File'} deleted`;
+      case 'renamed':
+        return `${resource_type === 'url' ? 'URL' : 'File'} renamed from "${details?.old_name}" to "${details?.new_name}"`;
+      case 'created':
+        return resource_type === 'event' ? 'Event created' : 'Item created';
+      default:
+        return `${action} ${resource_type}`;
+    }
+  };
+
   const getItemIcon = (item: TimelineItem) => {
     if (item.type === 'event') {
       return <Calendar className="h-5 w-5 text-blue-500" />;
     } else {
-      return item.details?.doc_type === 'url' ? 
-        <Link className="h-5 w-5 text-primary" /> : 
-        <FileText className="h-5 w-5 text-green-500" />;
+      // For file/url activities, show icon based on action
+      switch (item.action) {
+        case 'uploaded':
+          return item.details?.doc_type === 'url' ? 
+            <Link className="h-5 w-5 text-green-500" /> : 
+            <Upload className="h-5 w-5 text-green-500" />;
+        case 'deleted':
+          return <Trash2 className="h-5 w-5 text-red-500" />;
+        case 'renamed':
+          return <Edit3 className="h-5 w-5 text-blue-500" />;
+        default:
+          return item.details?.doc_type === 'url' ? 
+            <Link className="h-5 w-5 text-primary" /> : 
+            <FileText className="h-5 w-5 text-primary" />;
+      }
+    }
+  };
+
+  const getActivityBadge = (item: TimelineItem) => {
+    if (item.type === 'event') {
+      return 'Event';
+    }
+    
+    switch (item.action) {
+      case 'uploaded':
+        return 'Upload';
+      case 'deleted':
+        return 'Delete';
+      case 'renamed':
+        return 'Rename';
+      case 'created':
+        return 'Create';
+      default:
+        return item.action;
     }
   };
 
@@ -239,7 +254,7 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
                       {getItemIcon(item)}
                     </div>
                     <Badge variant="outline" className="text-xs font-medium">
-                      {item.type === 'event' ? 'Event' : 'Upload'}
+                      {getActivityBadge(item)}
                     </Badge>
                   </div>
                   
