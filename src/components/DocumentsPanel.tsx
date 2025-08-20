@@ -20,6 +20,7 @@ interface Document {
   raw_text?: string;
   summary?: string;
   storage_path?: string;
+  download_path?: string;
 }
 
 interface DocumentsPanelProps {
@@ -230,21 +231,15 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setDownloading(document.id);
     
     try {
-      // Use storage_path from document data
-      if (!document.storage_path) {
-        throw new Error('No storage path found for this document');
+      // Use download_path from document data
+      if (!document.download_path) {
+        throw new Error('No download path found for this document');
       }
 
-      // Remove 'documents/' prefix from storage_path if it exists
-      let filePath = document.storage_path;
-      if (filePath.startsWith('documents/')) {
-        filePath = filePath.substring('documents/'.length);
-      }
-
-      // Get download URL using the cleaned file path
+      // Get download URL using the download_path
       const { data } = await supabase.storage
         .from('documents')
-        .createSignedUrl(filePath, 60);
+        .createSignedUrl(document.download_path, 60);
 
       if (data?.signedUrl) {
         // Create a temporary link and trigger download
