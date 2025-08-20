@@ -38,7 +38,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   const [deleting, setDeleting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadDialog, setUploadDialog] = useState(false);
-  const [filename, setFilename] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState('');
   const [uploadType, setUploadType] = useState<'file' | 'url'>('file');
@@ -93,15 +92,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   };
 
   const handleUpload = async () => {
-    if (!filename.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a filename",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (uploadType === 'file' && !file) {
       toast({
         title: "Error",
@@ -133,7 +123,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         // Create FormData for multipart/form-data upload
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('filename', filename.trim());
 
         // Upload to backend API
         const response = await api.post(
@@ -146,12 +135,13 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }
       } else if (uploadType === 'url') {
-        // For URLs, send as JSON
+        // For URLs, send as JSON with a default filename
+        const urlFilename = url.split('/').pop() || 'document';
         const response = await api.post(
           `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
           {
             url: url.trim(),
-            filename: filename.trim(),
+            filename: urlFilename,
           }
         );
 
@@ -167,7 +157,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       });
 
       setUploadDialog(false);
-      setFilename('');
       setFile(null);
       setUrl('');
       fetchDocuments();
@@ -415,16 +404,6 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
               <DialogTitle>Upload Document</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="filename">Document Name</Label>
-                <Input
-                  id="filename"
-                  value={filename}
-                  onChange={(e) => setFilename(e.target.value)}
-                  placeholder="Enter a custom name for this document"
-                />
-              </div>
-              
               <div className="flex space-x-2">
                 <Button
                   type="button"
