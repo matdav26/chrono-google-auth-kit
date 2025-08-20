@@ -244,32 +244,41 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       const filePath = `${projectId}/${document.download_path}`;
       console.log('Full file path:', filePath);
       
-      // Use Supabase's built-in file serving
-      const publicUrl = supabase.storage
+      // Use Supabase's download method instead of public URL
+      const { data, error } = await supabase.storage
         .from('documents')
-        .getPublicUrl(filePath)
-        .data.publicUrl;
+        .download(filePath);
       
-      console.log('Generated public URL:', publicUrl);
+      console.log('Download response:', { data, error });
       
-      // Test if file exists first
-      const { data: fileExists, error: checkError } = await supabase.storage
-        .from('documents')
-        .list(projectId, { search: document.download_path });
+      if (error) {
+        console.error('Storage download error:', error);
+        throw new Error(`Download failed: ${error.message}`);
+      }
       
-      console.log('File exists check:', { fileExists, checkError });
-      
-      window.open(publicUrl, '_blank');
-      
-      toast({
-        title: "Success",
-        description: "File download started",
-      });
+      if (data) {
+        // Create blob URL and trigger download
+        const url = URL.createObjectURL(data);
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.download = document.filename || 'download';
+        window.document.body.appendChild(link);
+        link.click();
+        window.document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Success",
+          description: "File download started",
+        });
+      } else {
+        throw new Error('No file data received');
+      }
     } catch (err) {
       console.error('Error downloading file:', err);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to open download link",
+        description: err instanceof Error ? err.message : "Failed to download file",
         variant: "destructive",
       });
     } finally {
