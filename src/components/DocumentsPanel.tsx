@@ -231,52 +231,19 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setDownloading(document.id);
     
     try {
-      // Use download_path from document data
-      if (!document.download_path) {
-        throw new Error('No download path found for this document');
-      }
-
-      console.log('Attempting to download with path:', document.download_path);
-
-      // Use the correct path format that Supabase storage expects
-      const filePath = `${projectId}/${document.download_path}`;
+      // Open the backend download endpoint in a new tab
+      const downloadUrl = `https://chronoboard-backend.onrender.com/api/documents/${document.id}/download`;
+      window.open(downloadUrl, '_blank');
       
-      console.log('Attempting to download file:', filePath);
-      
-      // Create signed URL for download
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(filePath, 60);
-
-      console.log('Supabase storage response:', { data, error, filePath });
-
-      if (error) {
-        console.error('Storage API error details:', error);
-        throw new Error(`Storage error: ${error.message}`);
-      }
-
-      if (data?.signedUrl) {
-        console.log('Successfully got signed URL:', data.signedUrl);
-        // Create a temporary link and trigger download
-        const link = window.document.createElement('a');
-        link.href = data.signedUrl;
-        link.download = document.filename || filePath;
-        window.document.body.appendChild(link);
-        link.click();
-        window.document.body.removeChild(link);
-        
-        toast({
-          title: "Success",
-          description: "File download started",
-        });
-      } else {
-        throw new Error('Failed to generate download URL - no signed URL returned');
-      }
+      toast({
+        title: "Success",
+        description: "File download started",
+      });
     } catch (err) {
       console.error('Error downloading file:', err);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to download file",
+        description: "Failed to open download link",
         variant: "destructive",
       });
     } finally {
