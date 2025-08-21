@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,8 @@ interface Event {
   id: string;
   event_name: string;
   event_description?: string;
+  event_summary?: string;
+  processed?: boolean;
   created_at: string;
   created_by: string;
   project_id: string;
@@ -209,12 +212,64 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
     }
   };
 
-  // Placeholder for future AI summary implementation
   const handleGenerateSummary = async (event: Event) => {
-    toast({
-      title: "Coming Soon",
-      description: "AI summary generation will be implemented on the backend",
-    });
+    if (!event.event_description) {
+      toast({
+        title: "Error",
+        description: "No description available to summarize",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (event.processed) {
+      toast({
+        title: "Info",
+        description: "This event already has a generated summary",
+      });
+      return;
+    }
+
+    setGeneratingSummary(event.id);
+
+    try {
+      const response = await api.post(
+        `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const data = await response.json();
+
+      // Update the event in Supabase with the generated summary
+      const { error } = await supabase
+        .from('events')
+        .update({
+          event_summary: data.summary,
+          processed: true,
+        })
+        .eq('id', event.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "AI summary generated successfully",
+      });
+
+      fetchEvents();
+    } catch (err) {
+      console.error('Error generating summary:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to generate summary",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSummary(null);
+    }
   };
 
   const startEditing = (event: Event) => {
@@ -391,15 +446,19 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {event.event_description && (
+                    {event.event_description && !event.processed && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleGenerateSummary(event)}
-                        disabled
+                        disabled={generatingSummary === event.id}
                       >
-                        <Sparkles className="h-3 w-3" />
-                        Generate AI Summary
+                        {generatingSummary === event.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Sparkles className="h-3 w-3 mr-1" />
+                        )}
+                        {generatingSummary === event.id ? 'Generating...' : 'Generate AI Summary'}
                       </Button>
                     )}
                     <Button
@@ -445,33 +504,47 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
                 </div>
               </CardHeader>
               
-              {event.event_description && (
+              {(event.event_description || event.event_summary) && (
                 <CardContent className="pt-0">
-                  <Collapsible
-                    open={expandedDescriptions.has(event.id)}
-                    onOpenChange={() => toggleDescription(event.id)}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
-                        {expandedDescriptions.has(event.id) ? (
-                          <>
-                            <ChevronUp className="h-3 w-3 mr-1" />
-                            Hide Description
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="h-3 w-3 mr-1" />
-                            Show Description
-                          </>
-                        )}
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-2">
-                      <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md whitespace-pre-wrap">
-                        {event.event_description}
+                  {event.event_description && (
+                    <Collapsible
+                      open={expandedDescriptions.has(event.id)}
+                      onOpenChange={() => toggleDescription(event.id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
+                          {expandedDescriptions.has(event.id) ? (
+                            <>
+                              <ChevronUp className="h-3 w-3 mr-1" />
+                              Hide Description
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-3 w-3 mr-1" />
+                              Show Description
+                            </>
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md whitespace-pre-wrap">
+                          {event.event_description}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                  
+                  {event.event_summary && (
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <h4 className="text-sm font-medium">AI Summary</h4>
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                      <div className="text-sm bg-primary/5 border border-primary/20 p-3 rounded-md">
+                        {event.event_summary}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               )}
             </Card>
