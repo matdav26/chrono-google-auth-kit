@@ -233,15 +233,23 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
     setGeneratingSummary(event.id);
 
     try {
+      console.log('Making API call to:', `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`);
+      
       const response = await api.post(
         `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`
       );
 
+      console.log('API Response status:', response.status);
+      console.log('API Response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Failed to generate summary');
+        const errorText = await response.text();
+        console.error('API Error response:', errorText);
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('API Response data:', data);
 
       // Update the event in Supabase with the generated summary
       const { error } = await supabase
