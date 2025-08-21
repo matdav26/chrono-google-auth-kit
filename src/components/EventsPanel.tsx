@@ -249,7 +249,7 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
         .update({
           event_summary: data.summary,
           processed: true,
-        })
+        } as any)
         .eq('id', event.id);
 
       if (error) throw error;
