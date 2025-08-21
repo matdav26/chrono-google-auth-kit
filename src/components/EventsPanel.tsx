@@ -536,65 +536,77 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
               </CardHeader>
               
               {(event.event_description || event.event_summary) && (
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-4 mb-2">
-                    {event.event_description && (
-                      <Collapsible
-                        open={expandedDescriptions.has(event.id)}
-                        onOpenChange={() => toggleDescription(event.id)}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
-                            {expandedDescriptions.has(event.id) ? (
-                              <>
-                                <ChevronUp className="h-3 w-3 mr-1" />
-                                Hide Description
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3 w-3 mr-1" />
-                                Show Description
-                              </>
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2">
-                          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md whitespace-pre-wrap">
-                            {event.event_description}
+                <CardContent className="pt-0 space-y-3">
+                  {event.event_description && (
+                    <Collapsible
+                      open={expandedDescriptions.has(event.id)}
+                      onOpenChange={() => toggleDescription(event.id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                        >
+                          {expandedDescriptions.has(event.id) ? (
+                            <>
+                              <ChevronUp className="h-3 w-3 mr-2" />
+                              Hide Description
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-3 w-3 mr-2" />
+                              Show Description
+                            </>
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="animate-accordion-down data-[state=closed]:animate-accordion-up">
+                        <div className="mt-2 text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg border border-muted/50 whitespace-pre-wrap leading-relaxed">
+                          {event.event_description}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                  
+                  {event.event_summary && (
+                    <Collapsible
+                      open={expandedSummaries.has(event.id)}
+                      onOpenChange={() => toggleSummary(event.id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2 rounded-md hover:bg-primary/10 transition-colors"
+                        >
+                          {expandedSummaries.has(event.id) ? (
+                            <>
+                              <ChevronUp className="h-3 w-3 mr-2" />
+                              Hide AI Summary
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-3 w-3 mr-2 text-primary" />
+                              <ChevronDown className="h-3 w-3 mr-2" />
+                              Show AI Summary
+                            </>
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="animate-accordion-down data-[state=closed]:animate-accordion-up">
+                        <div className="mt-2 text-sm bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 p-4 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-3 w-3 text-primary" />
+                            <span className="text-xs font-medium text-primary uppercase tracking-wide">AI Generated Summary</span>
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                    
-                    {event.event_summary && (
-                      <Collapsible
-                        open={expandedSummaries.has(event.id)}
-                        onOpenChange={() => toggleSummary(event.id)}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
-                            {expandedSummaries.has(event.id) ? (
-                              <>
-                                <ChevronUp className="h-3 w-3 mr-1" />
-                                Hide Summary
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3 w-3 mr-1" />
-                                <Sparkles className="h-3 w-3 mr-1" />
-                                Show Summary
-                              </>
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2">
-                          <div className="text-sm bg-primary/5 border border-primary/20 p-3 rounded-md">
+                          <div className="leading-relaxed">
                             {event.event_summary}
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                  </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </CardContent>
               )}
             </Card>
