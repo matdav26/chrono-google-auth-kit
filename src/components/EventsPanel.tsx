@@ -110,16 +110,30 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
     setCreating(true);
 
     try {
-      const { error } = await supabase
+      console.log('=== EVENT CREATION DEBUG ===');
+      console.log('Project ID:', projectId);
+      console.log('Event Name:', eventName.trim());
+      console.log('Event Description:', eventDescription.trim() || null);
+      console.log('Event Date:', new Date(eventDate).toISOString());
+      
+      const { data, error } = await supabase
         .from('events')
         .insert({
           project_id: projectId,
           event_name: eventName.trim(),
           event_description: eventDescription.trim() || null,
           created_at: new Date(eventDate).toISOString(),
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      console.log('Insert result:', { data, error });
+      
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      
+      console.log('Event created successfully:', data);
 
       toast({
         title: "Success",
@@ -460,14 +474,6 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                       <Clock className="h-3 w-3" />
                       {format(new Date(event.created_at), 'MMM d, yyyy \'at\' h:mm a')}
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-primary"
-                        onClick={() => navigateToTimeline(event.created_at)}
-                      >
-                        View in Timeline
-                      </Button>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
