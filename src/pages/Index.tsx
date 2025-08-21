@@ -236,7 +236,6 @@ const Index = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="truncate">{project.name}</span>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </CardTitle>
                   {project.description && (
                     <CardDescription>{project.description}</CardDescription>
