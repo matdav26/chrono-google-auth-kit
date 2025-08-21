@@ -117,7 +117,7 @@ const ProjectView = () => {
           </div>
         );
       case 'events':
-        return <EventsPanel projectId={project.id} />;
+        return <EventsPanel projectId={project.id} onNavigateToTimeline={() => setCurrentSection('timeline')} />;
       default:
         return <ProjectOverview projectId={project.id} />;
     }

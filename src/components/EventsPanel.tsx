@@ -26,9 +26,10 @@ interface Event {
 
 interface EventsPanelProps {
   projectId: string;
+  onNavigateToTimeline?: () => void;
 }
 
-export const EventsPanel = ({ projectId }: EventsPanelProps) => {
+export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProps) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -234,7 +235,11 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
     setGeneratingSummary(event.id);
 
     try {
-      console.log('Event object:', event);
+      console.log('=== GENERATE SUMMARY DEBUG ===');
+      console.log('Event object:', JSON.stringify(event, null, 2));
+      console.log('Event ID type:', typeof event.id);
+      console.log('Event ID length:', event.id.length);
+      console.log('Project ID:', projectId);
       console.log('Event ID:', event.id);
       console.log('Making API call to:', `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`);
       
@@ -317,10 +322,9 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
   };
 
   const navigateToTimeline = (createdAt: string) => {
-    // Deep-link to timeline - you can enhance this with URL parameters if needed
-    const timelineSection = document.querySelector('[data-section="timeline"]');
-    if (timelineSection) {
-      timelineSection.scrollIntoView({ behavior: 'smooth' });
+    // Use the callback prop to navigate to timeline section
+    if (onNavigateToTimeline) {
+      onNavigateToTimeline();
     }
   };
 
