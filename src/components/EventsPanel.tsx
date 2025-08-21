@@ -209,52 +209,12 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
     }
   };
 
+  // Placeholder for future AI summary implementation
   const handleGenerateSummary = async (event: Event) => {
-    if (!event.event_description) {
-      toast({
-        title: "Error",
-        description: "No description available to summarize",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setGeneratingSummary(event.id);
-
-    try {
-      // Call the summarization endpoint (you'll need to create this edge function)
-      const response = await fetch('/functions/v1/summarize-event', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          eventId: event.id,
-          description: event.event_description,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate summary');
-      }
-
-      toast({
-        title: "Success",
-        description: "AI summary generated successfully",
-      });
-
-      fetchEvents();
-    } catch (err) {
-      console.error('Error generating summary:', err);
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to generate summary",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingSummary(null);
-    }
+    toast({
+      title: "Coming Soon",
+      description: "AI summary generation will be implemented on the backend",
+    });
   };
 
   const startEditing = (event: Event) => {
@@ -436,13 +396,9 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleGenerateSummary(event)}
-                        disabled={generatingSummary === event.id}
+                        disabled
                       >
-                        {generatingSummary === event.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3 w-3" />
-                        )}
+                        <Sparkles className="h-3 w-3" />
                         Generate AI Summary
                       </Button>
                     )}
