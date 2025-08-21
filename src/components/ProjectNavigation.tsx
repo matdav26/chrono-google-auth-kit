@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { BarChart3, FileText, Clock } from 'lucide-react';
+import { BarChart3, FileText, Clock, Calendar } from 'lucide-react';
 
-export type ProjectSection = 'overview' | 'documents' | 'timeline';
+export type ProjectSection = 'overview' | 'documents' | 'timeline' | 'events';
 
 interface ProjectNavigationProps {
   currentSection: ProjectSection;
@@ -25,6 +25,11 @@ export const ProjectNavigation = ({ currentSection, onSectionChange }: ProjectNa
       id: 'timeline' as ProjectSection,
       label: 'Timeline',
       icon: Clock,
+    },
+    {
+      id: 'events' as ProjectSection,
+      label: 'Events',
+      icon: Calendar,
     },
   ];
 

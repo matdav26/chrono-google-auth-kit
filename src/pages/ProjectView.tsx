@@ -10,6 +10,7 @@ import { HorizontalTimeline } from '@/components/HorizontalTimeline';
 import { EventCreation } from '@/components/EventCreation';
 import { ProjectNavigation, ProjectSection } from '@/components/ProjectNavigation';
 import { ProjectOverview } from '@/components/ProjectOverview';
+import { EventsPanel } from '@/components/EventsPanel';
 
 interface Project {
   id: string;
@@ -115,6 +116,8 @@ const ProjectView = () => {
             <ProjectLogs projectId={project.id} />
           </div>
         );
+      case 'events':
+        return <EventsPanel projectId={project.id} />;
       default:
         return <ProjectOverview projectId={project.id} />;
     }
