@@ -234,6 +234,8 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
     setGeneratingSummary(event.id);
 
     try {
+      console.log('Event object:', event);
+      console.log('Event ID:', event.id);
       console.log('Making API call to:', `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`);
       
       const response = await api.post(
@@ -246,7 +248,7 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error response:', errorText);
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
