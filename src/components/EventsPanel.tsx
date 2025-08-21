@@ -587,7 +587,6 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                             </>
                           ) : (
                             <>
-                              <Sparkles className="h-3 w-3 mr-2 text-primary" />
                               <ChevronDown className="h-3 w-3 mr-2" />
                               Show AI Summary
                             </>
