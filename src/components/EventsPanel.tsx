@@ -40,6 +40,7 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
   
   // Form states
   const [eventName, setEventName] = useState('');
@@ -303,6 +304,16 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
     setExpandedDescriptions(newExpanded);
   };
 
+  const toggleSummary = (eventId: string) => {
+    const newExpanded = new Set(expandedSummaries);
+    if (newExpanded.has(eventId)) {
+      newExpanded.delete(eventId);
+    } else {
+      newExpanded.add(eventId);
+    }
+    setExpandedSummaries(newExpanded);
+  };
+
   const navigateToTimeline = (createdAt: string) => {
     // Deep-link to timeline - you can enhance this with URL parameters if needed
     const timelineSection = document.querySelector('[data-section="timeline"]');
@@ -514,45 +525,64 @@ export const EventsPanel = ({ projectId }: EventsPanelProps) => {
               
               {(event.event_description || event.event_summary) && (
                 <CardContent className="pt-0">
-                  {event.event_description && (
-                    <Collapsible
-                      open={expandedDescriptions.has(event.id)}
-                      onOpenChange={() => toggleDescription(event.id)}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
-                          {expandedDescriptions.has(event.id) ? (
-                            <>
-                              <ChevronUp className="h-3 w-3 mr-1" />
-                              Hide Description
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-3 w-3 mr-1" />
-                              Show Description
-                            </>
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-2">
-                        <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md whitespace-pre-wrap">
-                          {event.event_description}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  )}
-                  
-                  {event.event_summary && (
-                    <div className="mt-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <h4 className="text-sm font-medium">AI Summary</h4>
-                      </div>
-                      <div className="text-sm bg-primary/5 border border-primary/20 p-3 rounded-md">
-                        {event.event_summary}
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-4 mb-2">
+                    {event.event_description && (
+                      <Collapsible
+                        open={expandedDescriptions.has(event.id)}
+                        onOpenChange={() => toggleDescription(event.id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
+                            {expandedDescriptions.has(event.id) ? (
+                              <>
+                                <ChevronUp className="h-3 w-3 mr-1" />
+                                Hide Description
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-3 w-3 mr-1" />
+                                Show Description
+                              </>
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md whitespace-pre-wrap">
+                            {event.event_description}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                    
+                    {event.event_summary && (
+                      <Collapsible
+                        open={expandedSummaries.has(event.id)}
+                        onOpenChange={() => toggleSummary(event.id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="p-0 h-auto font-normal">
+                            {expandedSummaries.has(event.id) ? (
+                              <>
+                                <ChevronUp className="h-3 w-3 mr-1" />
+                                Hide Summary
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-3 w-3 mr-1" />
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Show Summary
+                              </>
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                          <div className="text-sm bg-primary/5 border border-primary/20 p-3 rounded-md">
+                            {event.event_summary}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                  </div>
                 </CardContent>
               )}
             </Card>
