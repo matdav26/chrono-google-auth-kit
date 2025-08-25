@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import Projects from "./pages/Projects";
 import ProjectView from "./pages/ProjectView";
 import NewProject from "./pages/NewProject";
-import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,7 +21,6 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/auth-callback" element={<AuthCallback />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectView />} />
             <Route path="/projects/new" element={<NewProject />} />
