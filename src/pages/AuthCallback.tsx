@@ -11,9 +11,17 @@ const AuthCallback: React.FC = () => {
     const handleAuthCallback = async () => {
       try {
         console.log('🔄 Processing OAuth callback...');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🔍 URL parameters:', window.location.search);
+        
+        // Wait a bit for Supabase to process the callback
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Get the current session after OAuth redirect
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('📋 Session data:', session);
+        console.log('❌ Session error:', sessionError);
         
         if (sessionError) {
           console.error('❌ Session error:', sessionError);
@@ -33,6 +41,13 @@ const AuthCallback: React.FC = () => {
           }, 1000);
         } else {
           console.log('❌ No session found after OAuth callback');
+          console.log('🔍 Trying to get user directly...');
+          
+          // Try getting user directly
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          console.log('👤 User data:', user);
+          console.log('❌ User error:', userError);
+          
           setError('No session found after authentication');
           setStatus('error');
           setTimeout(() => navigate('/'), 3000);
