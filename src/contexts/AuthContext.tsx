@@ -57,14 +57,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('AuthContext: Auth state changed:', event, session?.user?.email);
+      async (event, session) => {
+        console.log('AuthContext: Auth state changed:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
         // Log OAuth events for debugging
         if (event === 'SIGNED_IN') {
           console.log('User signed in successfully');
+          // Handle OAuth callback hash
+          if (window.location.hash && window.location.hash.includes('access_token')) {
+            console.log('OAuth callback detected, processing...');
+            const { data: { session: newSession } } = await supabase.auth.getSession();
+            if (newSession) {
+              console.log('Session established from OAuth callback');
+              setSession(newSession);
+              setUser(newSession.user);
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
         } else if (event === 'TOKEN_REFRESHED') {
@@ -75,12 +85,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('AuthContext: Initial session check:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
+    // THEN check for existing session or OAuth callback
+    const checkSession = async () => {
+      // Check if this is an OAuth callback
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        console.log('OAuth callback URL detected');
+        // Give Supabase time to process the callback
+        setTimeout(async () => {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('Error getting session:', error);
+          } else {
+            console.log('AuthContext: Session from OAuth:', session);
+            setSession(session);
+            setUser(session?.user ?? null);
+          }
+        }, 100);
+      } else {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting initial session:', error);
+        } else {
+          console.log('AuthContext: Initial session check:', session);
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      }
+    };
+    
+    checkSession();
 
     return () => subscription.unsubscribe();
   }, []);
