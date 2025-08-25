@@ -84,15 +84,25 @@ export const AuthForm = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/projects`
+          redirectTo: `${window.location.origin}/`
         }
       });
 
       if (error) {
         setError(error.message);
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive"
+        });
       }
     } catch (error) {
       setError("An unexpected error occurred");
+      toast({
+        title: "Authentication Error",
+        description: "Failed to initiate Google sign-in",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

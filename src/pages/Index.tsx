@@ -20,18 +20,28 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session);
         setSession(session);
+        
+        // Handle OAuth callback - redirect to projects after successful login
+        if (event === 'SIGNED_IN' && session) {
+          // Check if this is an OAuth callback (URL has hash fragments)
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          if (hashParams.get('access_token')) {
+            console.log('OAuth callback detected, session established');
+          }
+        }
       }
     );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      console.log('Initial session check:', session);
+    });
 
     // Clean up listener on unmount
     return () => subscription.unsubscribe();
