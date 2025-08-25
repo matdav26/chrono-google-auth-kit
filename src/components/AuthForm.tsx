@@ -81,22 +81,27 @@ export const AuthForm = () => {
     setError('');
 
     try {
+      console.log('Initiating Google OAuth sign-in...');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${window.location.origin}/auth-callback`
         }
       });
 
       if (error) {
+        console.error('OAuth initiation error:', error);
         setError(error.message);
         toast({
           title: "Authentication Error",
           description: error.message,
           variant: "destructive"
         });
+      } else {
+        console.log('OAuth initiated successfully, redirecting to Google...');
       }
     } catch (error) {
+      console.error('Unexpected OAuth error:', error);
       setError("An unexpected error occurred");
       toast({
         title: "Authentication Error",
