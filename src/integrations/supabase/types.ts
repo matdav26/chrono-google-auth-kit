@@ -106,7 +106,9 @@ export type Database = {
           created_by: string | null
           event_description: string | null
           event_name: string | null
+          event_summary: string | null
           id: string
+          processed: boolean | null
           project_id: string
         }
         Insert: {
@@ -114,7 +116,9 @@ export type Database = {
           created_by?: string | null
           event_description?: string | null
           event_name?: string | null
+          event_summary?: string | null
           id?: string
+          processed?: boolean | null
           project_id: string
         }
         Update: {
@@ -122,7 +126,9 @@ export type Database = {
           created_by?: string | null
           event_description?: string | null
           event_name?: string | null
+          event_summary?: string | null
           id?: string
+          processed?: boolean | null
           project_id?: string
         }
         Relationships: [
@@ -197,18 +203,21 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
+          signup_method: string | null
         }
         Insert: {
           created_at?: string
           email?: string | null
           id: string
           name?: string | null
+          signup_method?: string | null
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
           name?: string | null
+          signup_method?: string | null
         }
         Relationships: []
       }
