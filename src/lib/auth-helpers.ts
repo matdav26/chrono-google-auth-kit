@@ -1,18 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Checks if a user has signed up through email/password by verifying their existence in the users table
+ * Checks if a user has signed up through email/password by checking their signup_method
  * @param userId - The user's ID from auth
- * @returns true if user exists (has signed up properly), false otherwise
+ * @returns true if user signed up with email, false otherwise
  */
-export async function checkUserExistsInDatabase(userId: string): Promise<boolean> {
+export async function checkUserSignedUpWithEmail(userId: string): Promise<boolean> {
   try {
-    console.log('Checking if user exists in database:', userId);
+    console.log('Checking user signup method for:', userId);
     
-    // Check if user exists in the users table
+    // Check if user exists and how they signed up
     const { data, error } = await supabase
       .from('users')
-      .select('id')
+      .select('id, signup_method')
       .eq('id', userId)
       .single();
     
@@ -21,10 +21,11 @@ export async function checkUserExistsInDatabase(userId: string): Promise<boolean
       return false;
     }
     
-    console.log('User found in database:', data);
-    return !!data;
+    console.log('User data found:', data);
+    // Check if user signed up with email
+    return data?.signup_method === 'email';
   } catch (error) {
-    console.error('Error checking user existence:', error);
+    console.error('Error checking user signup method:', error);
     return false;
   }
 }
@@ -38,9 +39,9 @@ export async function validateGoogleOAuthLogin(userId: string): Promise<{
   isValid: boolean;
   errorMessage?: string;
 }> {
-  const userExists = await checkUserExistsInDatabase(userId);
+  const signedUpWithEmail = await checkUserSignedUpWithEmail(userId);
   
-  if (!userExists) {
+  if (!signedUpWithEmail) {
     return {
       isValid: false,
       errorMessage: 'Please sign up with email and password before using Google login.'

@@ -35,7 +35,20 @@ export const AuthForm = () => {
 
       if (error) {
         setError(error.message);
-      } else {
+      } else if (data.user) {
+        // Manually insert user into users table with email signup_method
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            signup_method: 'email'
+          });
+
+        if (insertError) {
+          console.error('Error creating user record:', insertError);
+        }
+
         toast({
           title: "Success",
           description: "Check your email for the confirmation link!",
