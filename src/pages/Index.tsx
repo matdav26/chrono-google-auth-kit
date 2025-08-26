@@ -179,31 +179,29 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold">My Projects</h1>
-            <p className="text-muted-foreground mt-2">
-              Signed in as {session.user.email}
-            </p>
+          <h1 className="text-4xl font-bold">Your Project Workspace</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-muted-foreground text-sm">
+              {session.user.email}
+            </span>
+            <Button onClick={handleSignOut} variant="outline" size="sm">
+              Sign Out
+            </Button>
+            <Button 
+              onClick={handleCreateProject} 
+              disabled={creating}
+              className="flex items-center gap-2"
+            >
+              {creating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Create Project
+                </>
+              )}
+            </Button>
           </div>
-          <Button onClick={handleSignOut} variant="outline">
-            Sign Out
-          </Button>
-        </div>
-
-        {/* Create Project Button */}
-        <div className="mb-6">
-          <Button 
-            onClick={handleCreateProject} 
-            disabled={creating}
-            className="flex items-center gap-2"
-          >
-            {creating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            New Project
-          </Button>
         </div>
 
         {/* Loading State */}
