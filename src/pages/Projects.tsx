@@ -22,6 +22,7 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -35,6 +36,9 @@ const Projects = () => {
           navigate('/');
           return;
         }
+
+        // Store user email
+        setUserEmail(session.user.email || null);
 
         // Fetch projects
         const { data, error } = await supabase
@@ -131,6 +135,11 @@ const Projects = () => {
     setEditingName(project.name);
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -161,10 +170,18 @@ const Projects = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-foreground">Your Project Workspace</h1>
-          <Button onClick={() => navigate('/new-project')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Project
-          </Button>
+          <div className="flex items-center gap-4">
+            {userEmail && (
+              <span className="text-sm text-muted-foreground">{userEmail}</span>
+            )}
+            <Button onClick={handleSignOut} variant="outline" size="sm">
+              Sign Out
+            </Button>
+            <Button onClick={() => navigate('/new-project')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Project
+            </Button>
+          </div>
         </div>
         
         {projects.length > 0 && (
