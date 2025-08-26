@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
+import { handleGoogleOAuthValidation } from '../lib/auth-helpers';
+import { useToast } from '@/hooks/use-toast';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +36,27 @@ const AuthCallback: React.FC = () => {
 
         if (session && session.user) {
           console.log('✅ Authentication successful:', session.user.email);
+          
+          // Validate Google OAuth login - check if user exists in database
+          const validation = await handleGoogleOAuthValidation(session.user.id);
+          
+          if (!validation.success) {
+            console.log('❌ Google OAuth validation failed');
+            setError(validation.errorMessage || 'Authentication validation failed');
+            setStatus('error');
+            
+            // Show toast notification
+            toast({
+              title: "Authentication Failed",
+              description: validation.errorMessage,
+              variant: "destructive",
+            });
+            
+            setTimeout(() => navigate('/'), 3000);
+            return;
+          }
+          
+          console.log('✅ User validation successful');
           setStatus('success');
           
           // Redirect to projects page after successful auth

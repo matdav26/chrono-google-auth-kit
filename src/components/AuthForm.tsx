@@ -184,25 +184,10 @@ export const AuthForm = () => {
           </TabsContent>
           <TabsContent value="signup">
             <div className="space-y-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full" 
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-              >
-                Continue with Google
-              </Button>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with email
-                  </span>
-                </div>
+              <div className="rounded-lg border border-muted p-3 bg-muted/10">
+                <p className="text-sm text-muted-foreground">
+                  Please sign up with email and password first. You can link Google login after creating your account.
+                </p>
               </div>
 
               <form onSubmit={handleSignUp} className="space-y-4">
