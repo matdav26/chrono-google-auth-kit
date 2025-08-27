@@ -18,30 +18,30 @@ export type Database = {
         Row: {
           created_at: string | null
           deadline: string | null
-          description: string | null
+          description: string
           id: string
-          owner_id: string | null
-          project_id: string | null
+          owner_id: string
+          project_id: string
           status: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           deadline?: string | null
-          description?: string | null
+          description: string
           id?: string
-          owner_id?: string | null
-          project_id?: string | null
+          owner_id: string
+          project_id: string
           status?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           deadline?: string | null
-          description?: string | null
+          description?: string
           id?: string
-          owner_id?: string | null
-          project_id?: string | null
+          owner_id?: string
+          project_id?: string
           status?: string | null
           updated_at?: string | null
         }
