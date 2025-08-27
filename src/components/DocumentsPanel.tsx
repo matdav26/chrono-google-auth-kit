@@ -389,11 +389,14 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       });
       
       // Fetch lightweight metadata again
-      fetchDocuments();
+      await fetchDocuments();
       
-      // If summary is already expanded, fetch the new details
-      if (expandedSummaries.has(documentId)) {
-        await fetchDocumentDetails(documentId);
+      // Always fetch the new details after generating summary
+      await fetchDocumentDetails(documentId);
+      
+      // If summary wasn't expanded, expand it now to show the generated summary
+      if (!expandedSummaries.has(documentId)) {
+        setExpandedSummaries(prev => new Set(prev).add(documentId));
       }
     } catch (err) {
       console.error('Error generating summary:', err);
