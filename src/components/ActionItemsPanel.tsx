@@ -158,7 +158,15 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
   const handleSubmit = async (data: ActionItemFormData) => {
     try {
-      const { error } = await supabase
+      console.log('Submitting action item with data:', {
+        project_id: projectId,
+        description: data.description,
+        owner_id: data.owner_id,
+        deadline: data.deadline?.toISOString(),
+        status: data.status,
+      });
+
+      const { data: insertedData, error } = await supabase
         .from('action_items')
         .insert({
           project_id: projectId,
@@ -166,14 +174,21 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
           owner_id: data.owner_id,
           deadline: data.deadline?.toISOString(),
           status: data.status,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Successfully created action item:', insertedData);
 
       // Store reminder preference in memory
-      if (data.reminder && data.reminder !== 'none') {
+      if (data.reminder && data.reminder !== 'none' && insertedData) {
         const newReminders = new Map(reminders);
-        newReminders.set(data.owner_id, data.reminder);
+        newReminders.set(insertedData.id, data.reminder);
         setReminders(newReminders);
       }
 
