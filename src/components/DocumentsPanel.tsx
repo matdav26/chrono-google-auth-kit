@@ -63,9 +63,10 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   const fetchDocuments = async () => {
     try {
       // Optimized query - fetch lightweight metadata including paths for download and processed field
+      // Include raw_text for URL documents to enable link navigation
       const { data, error } = await supabase
         .from('documents')
-        .select('id, filename, uploaded_at, doc_type, download_path, storage_path, processed, summary')
+        .select('id, filename, uploaded_at, doc_type, download_path, storage_path, processed, summary, raw_text')
         .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false })
         .limit(10);
