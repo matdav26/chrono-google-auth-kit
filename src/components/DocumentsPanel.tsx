@@ -19,6 +19,7 @@ interface Document {
   uploaded_at: string;
   raw_text?: string;
   summary?: string;
+  action_items?: string;
   storage_path?: string;
   download_path?: string;
 }
@@ -46,6 +47,8 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   const [downloading, setDownloading] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState<string | null>(null);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
+  const [documentDetails, setDocumentDetails] = useState<Map<string, Document>>(new Map());
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -58,15 +61,18 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
   const fetchDocuments = async () => {
     try {
-      const response = await api.get(
-        `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`
-      );
+      // Optimized query - fetch only lightweight metadata
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, filename, uploaded_at, doc_type')
+        .eq('project_id', projectId)
+        .order('uploaded_at', { ascending: false })
+        .limit(10);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch documents: ${response.status}`);
+      if (error) {
+        throw error;
       }
 
-      const data = await response.json();
       setDocuments(data || []);
     } catch (err) {
       console.error('Error fetching documents:', err);
@@ -78,6 +84,53 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     } finally {
       setLoading(false);
     }
+  };
+  
+  const fetchDocumentDetails = async (documentId: string) => {
+    // Check if we already have the details
+    if (documentDetails.has(documentId)) {
+      return documentDetails.get(documentId);
+    }
+    
+    setLoadingDetails(prev => new Set(prev).add(documentId));
+    
+    try {
+      // Fetch full details for a single document
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, summary, action_items, raw_text')
+        .eq('id', documentId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Merge with existing document data
+        const existingDoc = documents.find(d => d.id === documentId);
+        if (existingDoc) {
+          const fullDoc = { ...existingDoc, ...data };
+          setDocumentDetails(prev => new Map(prev).set(documentId, fullDoc));
+          return fullDoc;
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching document details:', err);
+      toast({
+        title: "Error",
+        description: "Failed to load document details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDetails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentId);
+        return newSet;
+      });
+    }
+    
+    return null;
   };
 
   const getDocType = (filename: string, isUrl: boolean = false): string => {
@@ -328,7 +381,20 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         description: "AI summary generated successfully",
       });
 
+      // Clear cached details to force refresh
+      setDocumentDetails(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(documentId);
+        return newMap;
+      });
+      
+      // Fetch lightweight metadata again
       fetchDocuments();
+      
+      // If summary is already expanded, fetch the new details
+      if (expandedSummaries.has(documentId)) {
+        await fetchDocumentDetails(documentId);
+      }
     } catch (err) {
       console.error('Error generating summary:', err);
       toast({
@@ -346,11 +412,13 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
     setEditingName(doc.filename);
   };
 
-  const toggleSummary = (docId: string) => {
+  const toggleSummary = async (docId: string) => {
     const newExpanded = new Set(expandedSummaries);
     if (newExpanded.has(docId)) {
       newExpanded.delete(docId);
     } else {
+      // Fetch full details when expanding to show summary
+      await fetchDocumentDetails(docId);
       newExpanded.add(docId);
     }
     setExpandedSummaries(newExpanded);
@@ -632,58 +700,67 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                  </div>
                 </div>
                 
-                {(!doc.summary || doc.summary.trim() === '') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateSummary(doc.id)}
-                    disabled={generatingSummary === doc.id}
-                    className="w-full h-8 text-xs"
-                  >
-                    {generatingSummary === doc.id ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                        Generate AI Summary
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                {doc.summary && doc.summary.trim() !== '' && (
-                  <div className="mt-3">
-                    <Collapsible 
-                      open={expandedSummaries.has(doc.id)} 
-                      onOpenChange={() => toggleSummary(doc.id)}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-between text-xs px-0 hover:bg-transparent"
-                        >
-                          <span>
-                            {expandedSummaries.has(doc.id) ? 'Hide Summary' : 'Show Summary'}
-                          </span>
-                          {expandedSummaries.has(doc.id) ? (
-                            <ChevronUp className="h-3 w-3" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-2">
-                        <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap">
-                          {doc.summary}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
+                {(() => {
+                  const fullDoc = documentDetails.get(doc.id) || doc;
+                  
+                  if (!fullDoc.summary || fullDoc.summary.trim() === '') {
+                    return (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateSummary(doc.id)}
+                        disabled={generatingSummary === doc.id}
+                        className="w-full h-8 text-xs"
+                      >
+                        {generatingSummary === doc.id ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                            Generate AI Summary
+                          </>
+                        )}
+                      </Button>
+                    );
+                  }
+                  
+                  return (
+                    <div className="mt-3">
+                      <Collapsible 
+                        open={expandedSummaries.has(doc.id)} 
+                        onOpenChange={() => toggleSummary(doc.id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-between text-xs px-0 hover:bg-transparent"
+                            disabled={loadingDetails.has(doc.id)}
+                          >
+                            <span>
+                              {loadingDetails.has(doc.id) ? 'Loading...' : expandedSummaries.has(doc.id) ? 'Hide Summary' : 'Show Summary'}
+                            </span>
+                            {loadingDetails.has(doc.id) ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : expandedSummaries.has(doc.id) ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                          <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap">
+                            {fullDoc.summary}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  );
+                })()}
                </CardHeader>
              </Card>
           ))}
