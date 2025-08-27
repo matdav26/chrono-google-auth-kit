@@ -135,14 +135,21 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
   const fetchActionItems = async () => {
     try {
+      setLoading(true);
+      console.log('Fetching action items for project:', projectId);
+      
       const { data, error } = await supabase
         .from('action_items')
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching action items:', error);
+        throw error;
+      }
 
+      console.log('Fetched action items:', data);
       setActionItems(data || []);
     } catch (error) {
       console.error('Error fetching action items:', error);
