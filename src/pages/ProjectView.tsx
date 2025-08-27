@@ -11,6 +11,7 @@ import { EventCreation } from '@/components/EventCreation';
 import { ProjectNavigation, ProjectSection } from '@/components/ProjectNavigation';
 import { ProjectOverview } from '@/components/ProjectOverview';
 import { EventsPanel } from '@/components/EventsPanel';
+import { ActionItemsPanel } from '@/components/ActionItemsPanel';
 
 interface Project {
   id: string;
@@ -118,8 +119,10 @@ const ProjectView = () => {
         );
       case 'events':
         return <EventsPanel projectId={project.id} onNavigateToTimeline={() => setCurrentSection('timeline')} />;
+      case 'action-items':
+        return <ActionItemsPanel projectId={project.id} />;
       default:
-        return <ProjectOverview projectId={project.id} />;
+        return <ProjectOverview projectId={project.id} onSectionChange={setCurrentSection} />;
     }
   };
 

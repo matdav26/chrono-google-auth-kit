@@ -83,28 +83,44 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
   const fetchProjectMembers = async () => {
     try {
-      const { data, error } = await supabase
+      // First fetch project memberships
+      const { data: memberships, error: membershipError } = await supabase
         .from('project_memberships')
-        .select(`
-          user_id,
-          users:user_id (
-            id,
-            name,
-            email
-          )
-        `)
+        .select('user_id')
         .eq('project_id', projectId);
 
-      if (error) throw error;
+      if (membershipError) throw membershipError;
 
-      setProjectMembers(data || []);
+      if (!memberships || memberships.length === 0) {
+        setProjectMembers([]);
+        return;
+      }
+
+      // Then fetch users separately
+      const userIds = memberships.map(m => m.user_id);
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+
+      // Combine the data
+      const combinedData = memberships.map(membership => ({
+        user_id: membership.user_id,
+        users: users?.find(u => u.id === membership.user_id) || {
+          id: membership.user_id,
+          name: null,
+          email: null,
+        },
+      }));
+
+      setProjectMembers(combinedData);
       
       // Create users map for quick lookup
       const map = new Map<string, User>();
-      data?.forEach(member => {
-        if (member.users) {
-          map.set(member.users.id, member.users);
-        }
+      users?.forEach(user => {
+        map.set(user.id, user);
       });
       setUsersMap(map);
     } catch (error) {
