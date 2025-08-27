@@ -61,10 +61,10 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
   const fetchDocuments = async () => {
     try {
-      // Optimized query - fetch only lightweight metadata
+      // Optimized query - fetch lightweight metadata including paths for download
       const { data, error } = await supabase
         .from('documents')
-        .select('id, filename, uploaded_at, doc_type')
+        .select('id, filename, uploaded_at, doc_type, download_path, storage_path')
         .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false })
         .limit(10);
@@ -268,30 +268,35 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
   };
 
   const handleDownload = async (document: Document) => {
-    if (document.doc_type === 'url') return; // Can't download URLs
+    // For URL documents, open in new tab
+    if (document.doc_type === 'url') {
+      if (document.raw_text) {
+        window.open(document.raw_text, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
     
     setDownloading(document.id);
     
     try {
-      // Debug logging
-      console.log('Document data:', document);
-      console.log('Project ID:', projectId);
-      console.log('Download path:', document.download_path);
+      // Try download_path first, then storage_path, then use filename
+      const downloadPath = document.download_path || document.storage_path || document.filename;
       
-      // Check if download_path exists
-      if (!document.download_path) {
+      if (!downloadPath) {
         throw new Error('No download path available for this document');
       }
       
-      const filePath = `${projectId}/${document.download_path}`;
-      console.log('Full file path:', filePath);
+      // Check if path already includes projectId
+      const filePath = downloadPath.includes(projectId) 
+        ? downloadPath 
+        : `${projectId}/${downloadPath}`;
       
-      // Use Supabase's download method instead of public URL
+      console.log('Attempting download from:', filePath);
+      
+      // Use Supabase's download method
       const { data, error } = await supabase.storage
         .from('documents')
         .download(filePath);
-      
-      console.log('Download response:', { data, error });
       
       if (error) {
         console.error('Storage download error:', error);
