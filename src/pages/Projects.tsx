@@ -140,10 +140,18 @@ const Projects = () => {
     navigate('/');
   };
 
-  const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProjects = projects
+    .filter(project => {
+      const searchLower = searchTerm.toLowerCase();
+      const nameMatch = project.name?.toLowerCase().includes(searchLower);
+      const descMatch = project.description?.toLowerCase().includes(searchLower);
+      // Also support underscore variations and without underscores
+      const normalizedSearch = searchLower.replace(/[_\s-]/g, '');
+      const normalizedName = project.name?.toLowerCase().replace(/[_\s-]/g, '');
+      const normalizedMatch = normalizedName?.includes(normalizedSearch);
+      return nameMatch || descMatch || normalizedMatch;
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   if (loading) {
     return (
@@ -177,7 +185,7 @@ const Projects = () => {
             <Button onClick={handleSignOut} variant="outline" size="sm">
               Sign Out
             </Button>
-            <Button onClick={() => navigate('/new-project')}>
+            <Button onClick={() => navigate('/projects/new')}>
               <Plus className="h-4 w-4 mr-2" />
               Create Project
             </Button>
