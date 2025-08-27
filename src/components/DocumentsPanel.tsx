@@ -22,6 +22,7 @@ interface Document {
   action_items?: string;
   storage_path?: string;
   download_path?: string;
+  processed?: boolean;
 }
 
 interface DocumentsPanelProps {
@@ -61,10 +62,10 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
   const fetchDocuments = async () => {
     try {
-      // Optimized query - fetch lightweight metadata including paths for download
+      // Optimized query - fetch lightweight metadata including paths for download and processed field
       const { data, error } = await supabase
         .from('documents')
-        .select('id, filename, uploaded_at, doc_type, download_path, storage_path')
+        .select('id, filename, uploaded_at, doc_type, download_path, storage_path, processed, summary')
         .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false })
         .limit(10);
@@ -74,6 +75,17 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
       }
 
       setDocuments(data || []);
+      
+      // Pre-populate document details for documents that already have summaries
+      if (data) {
+        const detailsMap = new Map();
+        data.forEach(doc => {
+          if (doc.processed && doc.summary) {
+            detailsMap.set(doc.id, doc);
+          }
+        });
+        setDocumentDetails(detailsMap);
+      }
     } catch (err) {
       console.error('Error fetching documents:', err);
       toast({
@@ -188,19 +200,36 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }
       } else if (uploadType === 'url') {
-        // For URLs, send as JSON with a default filename
-        const urlFilename = url.split('/').pop() || 'document';
-        const response = await api.post(
-          `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
-          {
-            url: url.trim(),
-            filename: urlFilename,
+        // For URLs, store them directly in the database without processing
+        // Extract a meaningful filename from the URL
+        let urlFilename = 'Link';
+        try {
+          const urlObj = new URL(url.trim());
+          const pathParts = urlObj.pathname.split('/').filter(p => p);
+          if (pathParts.length > 0) {
+            urlFilename = pathParts[pathParts.length - 1] || urlObj.hostname;
+          } else {
+            urlFilename = urlObj.hostname;
           }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
+        } catch {
+          // If URL parsing fails, use a generic name
+          urlFilename = 'Web Link';
+        }
+        
+        // Store the URL directly in the database
+        const { error } = await supabase
+          .from('documents')
+          .insert({
+            project_id: projectId,
+            filename: urlFilename,
+            doc_type: 'url',
+            raw_text: url.trim(),
+            processed: true, // URLs don't need processing
+            summary: null // URLs don't get summaries
+          });
+        
+        if (error) {
+          throw error;
         }
       }
 
@@ -711,62 +740,69 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                 {(() => {
                   const fullDoc = documentDetails.get(doc.id) || doc;
                   
-                  if (!fullDoc.summary || fullDoc.summary.trim() === '') {
+                  // Skip AI summary for URLs
+                  if (doc.doc_type === 'url') {
+                    return null;
+                  }
+                  
+                  // Check if document already has a summary or is processed
+                  if (fullDoc.processed && fullDoc.summary) {
                     return (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGenerateSummary(doc.id)}
-                        disabled={generatingSummary === doc.id}
-                        className="w-full h-8 text-xs"
-                      >
-                        {generatingSummary === doc.id ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                            Generate AI Summary
-                          </>
-                        )}
-                      </Button>
+                      <div className="mt-3">
+                        <Collapsible 
+                          open={expandedSummaries.has(doc.id)} 
+                          onOpenChange={() => toggleSummary(doc.id)}
+                        >
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full justify-between text-xs px-0 hover:bg-transparent"
+                              disabled={loadingDetails.has(doc.id)}
+                            >
+                              <span>
+                                {loadingDetails.has(doc.id) ? 'Loading...' : expandedSummaries.has(doc.id) ? 'Hide Summary' : 'Show Summary'}
+                              </span>
+                              {loadingDetails.has(doc.id) ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : expandedSummaries.has(doc.id) ? (
+                                <ChevronUp className="h-3 w-3" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="mt-2">
+                            <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap">
+                              {fullDoc.summary}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
                     );
                   }
                   
+                  // Show Generate AI Summary button for non-processed documents
                   return (
-                    <div className="mt-3">
-                      <Collapsible 
-                        open={expandedSummaries.has(doc.id)} 
-                        onOpenChange={() => toggleSummary(doc.id)}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-between text-xs px-0 hover:bg-transparent"
-                            disabled={loadingDetails.has(doc.id)}
-                          >
-                            <span>
-                              {loadingDetails.has(doc.id) ? 'Loading...' : expandedSummaries.has(doc.id) ? 'Hide Summary' : 'Show Summary'}
-                            </span>
-                            {loadingDetails.has(doc.id) ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : expandedSummaries.has(doc.id) ? (
-                              <ChevronUp className="h-3 w-3" />
-                            ) : (
-                              <ChevronDown className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2">
-                          <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap">
-                            {fullDoc.summary}
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateSummary(doc.id)}
+                      disabled={generatingSummary === doc.id}
+                      className="w-full h-8 text-xs"
+                    >
+                      {generatingSummary === doc.id ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                          Generate AI Summary
+                        </>
+                      )}
+                    </Button>
                   );
                 })()}
                </CardHeader>
