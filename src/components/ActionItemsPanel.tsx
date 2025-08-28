@@ -21,7 +21,8 @@ import * as z from 'zod';
 interface ActionItem {
   id: string;
   project_id: string;
-  description: string;
+  action_name: string;
+  description: string | null;
   owner_id: string;
   deadline: string | null;
   status: string;
@@ -41,7 +42,8 @@ interface ProjectMember {
 }
 
 const actionItemSchema = z.object({
-  description: z.string().min(1, 'Description is required'),
+  action_name: z.string().min(1, 'Action name is required'),
+  description: z.string().optional(),
   owner_id: z.string().min(1, 'Owner is required'),
   deadline: z.date().optional(),
   status: z.enum(['open', 'closed']),
@@ -69,6 +71,7 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
   const form = useForm<ActionItemFormData>({
     resolver: zodResolver(actionItemSchema),
     defaultValues: {
+      action_name: '',
       description: '',
       owner_id: '',
       status: 'open',
@@ -150,7 +153,13 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
       }
 
       console.log('Fetched action items:', data);
-      setActionItems(data || []);
+      // Map the data to include action_name field, handling the migration
+      const mappedData = (data || []).map((item: any) => ({
+        ...item,
+        action_name: item.action_name || item.description || '',
+        description: item.action_name ? item.description : null,
+      }));
+      setActionItems(mappedData);
     } catch (error) {
       console.error('Error fetching action items:', error);
       toast({
@@ -167,7 +176,8 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
     try {
       console.log('Submitting action item with data:', {
         project_id: projectId,
-        description: data.description,
+        action_name: data.action_name,
+        description: data.description || null,
         owner_id: data.owner_id,
         deadline: data.deadline?.toISOString(),
         status: data.status,
@@ -177,7 +187,8 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
         .from('action_items')
         .insert({
           project_id: projectId,
-          description: data.description,
+          action_name: data.action_name,
+          description: data.description || null,
           owner_id: data.owner_id,
           deadline: data.deadline?.toISOString(),
           status: data.status,
@@ -202,8 +213,9 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
             user_id: user.id,
             action: 'created',
             resource_type: 'action_item',
-            resource_name: data.description,
+            resource_name: data.action_name,
             details: {
+              description: data.description,
               owner_id: data.owner_id,
               deadline: data.deadline?.toISOString(),
               status: data.status,
@@ -265,7 +277,7 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
             user_id: user.id,
             action,
             resource_type: 'action_item',
-            resource_name: item.description,
+            resource_name: item.action_name,
             details: {
               field_updated: field,
               new_value: value,
@@ -347,17 +359,37 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
+                  name="action_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Action Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter action item name..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Description (Optional)</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Enter action item description..."
+                          placeholder="Enter detailed description if needed..."
                           className="resize-none"
                           {...field}
                         />
                       </FormControl>
+                      <FormDescription>
+                        Provide additional context or details about this action item
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -510,18 +542,17 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
-                      {editingId === item.id && editingField === 'description' ? (
+                      {editingId === item.id && editingField === 'action_name' ? (
                         <div className="flex items-center gap-2">
-                          <Textarea
+                          <Input
                             value={editingValue}
                             onChange={(e) => setEditingValue(e.target.value)}
-                            className="resize-none"
                             autoFocus
                           />
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => handleInlineEdit(item.id, 'description', editingValue)}
+                            onClick={() => handleInlineEdit(item.id, 'action_name', editingValue)}
                           >
                             <Check className="h-4 w-4" />
                           </Button>
@@ -534,10 +565,17 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                           </Button>
                         </div>
                       ) : (
-                        <CardTitle className="text-base flex items-center gap-2 cursor-pointer hover:text-primary" onClick={() => startEditing(item.id, 'description', item.description)}>
-                          {item.description}
-                          <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </CardTitle>
+                        <div className="flex-1">
+                          <CardTitle className="text-base flex items-center gap-2 cursor-pointer hover:text-primary" onClick={() => startEditing(item.id, 'action_name', item.action_name)}>
+                            {item.action_name}
+                            <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </CardTitle>
+                          {item.description && (
+                            <CardDescription className="mt-1">
+                              {item.description}
+                            </CardDescription>
+                          )}
+                        </div>
                       )}
                     </div>
                     {editingId === item.id && editingField === 'status' ? (
