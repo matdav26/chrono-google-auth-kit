@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileText, Clock, Calendar } from 'lucide-react';
+import { FileText, Clock, CheckSquare } from 'lucide-react';
 
 interface ProjectStatsProps {
   projectId: string;
@@ -10,14 +10,14 @@ interface ProjectStatsProps {
 interface Stats {
   totalFiles: number;
   lastUpdated: string | null;
-  totalEvents: number;
+  totalActionItems: number;
 }
 
 export const ProjectStats = ({ projectId }: ProjectStatsProps) => {
   const [stats, setStats] = useState<Stats>({
     totalFiles: 0,
     lastUpdated: null,
-    totalEvents: 0
+    totalActionItems: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -30,9 +30,9 @@ export const ProjectStats = ({ projectId }: ProjectStatsProps) => {
           .select('*', { count: 'exact', head: true })
           .eq('project_id', projectId);
 
-        // Get events count
-        const { count: eventsCount } = await supabase
-          .from('events')
+        // Get action items count
+        const { count: actionItemsCount } = await supabase
+          .from('action_items')
           .select('*', { count: 'exact', head: true })
           .eq('project_id', projectId);
 
@@ -48,7 +48,7 @@ export const ProjectStats = ({ projectId }: ProjectStatsProps) => {
         setStats({
           totalFiles: documentsCount || 0,
           lastUpdated: lastActivity?.created_at || null,
-          totalEvents: eventsCount || 0
+          totalActionItems: actionItemsCount || 0
         });
       } catch (error) {
         console.error('Error fetching project stats:', error);
@@ -127,11 +127,11 @@ export const ProjectStats = ({ projectId }: ProjectStatsProps) => {
         <CardContent className="p-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary/10 rounded-full">
-              <Calendar className="h-5 w-5 text-primary" />
+              <CheckSquare className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{stats.totalEvents}</p>
-              <p className="text-sm text-muted-foreground">Events Created</p>
+              <p className="text-2xl font-semibold">{stats.totalActionItems}</p>
+              <p className="text-sm text-muted-foreground">Action Items</p>
             </div>
           </div>
         </CardContent>
