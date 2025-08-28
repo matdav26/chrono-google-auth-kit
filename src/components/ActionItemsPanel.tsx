@@ -192,6 +192,25 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
       console.log('Successfully created action item:', insertedData);
 
+      // Log the activity for the action item creation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && insertedData) {
+        await supabase
+          .from('activity_logs')
+          .insert({
+            project_id: projectId,
+            user_id: user.id,
+            action: 'created',
+            resource_type: 'action_item',
+            resource_name: data.description,
+            details: {
+              owner_id: data.owner_id,
+              deadline: data.deadline?.toISOString(),
+              status: data.status,
+            },
+          });
+      }
+
       // Store reminder preference in memory
       if (data.reminder && data.reminder !== 'none' && insertedData) {
         const newReminders = new Map(reminders);
@@ -233,6 +252,26 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
         .eq('id', itemId);
 
       if (error) throw error;
+
+      // Log the activity for action item update
+      const { data: { user } } = await supabase.auth.getUser();
+      const item = actionItems.find(i => i.id === itemId);
+      if (user && item) {
+        const action = field === 'status' && value === 'closed' ? 'completed' : 'updated';
+        await supabase
+          .from('activity_logs')
+          .insert({
+            project_id: projectId,
+            user_id: user.id,
+            action,
+            resource_type: 'action_item',
+            resource_name: item.description,
+            details: {
+              field_updated: field,
+              new_value: value,
+            },
+          });
+      }
 
       toast({
         title: 'Success',

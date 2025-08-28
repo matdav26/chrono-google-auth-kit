@@ -4,12 +4,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, FileText, Loader2, ChevronLeft, ChevronRight, Link, Upload, Trash2, Edit3 } from 'lucide-react';
+import { Calendar, FileText, Loader2, ChevronLeft, ChevronRight, Link, Upload, Trash2, Edit3, CheckSquare, Plus, Pencil } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface TimelineItem {
   id: string;
-  type: 'event' | 'file';
+  type: 'event' | 'file' | 'action_item';
   action: string;
   title: string;
   description?: string;
@@ -93,15 +93,27 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
       if (docsError) throw docsError;
 
       // Convert activities to timeline items
-      const activityItems: TimelineItem[] = (activities || []).map(activity => ({
-        id: activity.id,
-        type: activity.resource_type === 'event' ? 'event' as const : 'file' as const,
-        action: activity.action,
-        title: activity.resource_name || 'Unknown',
-        description: getActivityDescription(activity),
-        date: activity.created_at,
-        details: activity.details || {},
-      }));
+      const activityItems: TimelineItem[] = (activities || []).map(activity => {
+        // Determine the type based on resource_type
+        let type: 'event' | 'file' | 'action_item';
+        if (activity.resource_type === 'event') {
+          type = 'event';
+        } else if (activity.resource_type === 'action_item') {
+          type = 'action_item';
+        } else {
+          type = 'file';
+        }
+        
+        return {
+          id: activity.id,
+          type,
+          action: activity.action,
+          title: activity.resource_name || 'Unknown',
+          description: getActivityDescription(activity),
+          date: activity.created_at,
+          details: activity.details || {},
+        };
+      });
 
       // Convert documents to upload timeline items
       const uploadItems: TimelineItem[] = (documents || []).map(doc => ({
@@ -144,6 +156,21 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
   const getActivityDescription = (activity: any) => {
     const { action, resource_type, details } = activity;
     
+    if (resource_type === 'action_item') {
+      switch (action) {
+        case 'created':
+          return 'Action item created';
+        case 'updated':
+          return 'Action item updated';
+        case 'deleted':
+          return 'Action item deleted';
+        case 'completed':
+          return 'Action item completed';
+        default:
+          return `Action item ${action}`;
+      }
+    }
+    
     switch (action) {
       case 'uploaded':
         return `${resource_type === 'url' ? 'URL' : 'File'} uploaded`;
@@ -161,6 +188,20 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
   const getItemIcon = (item: TimelineItem) => {
     if (item.type === 'event') {
       return <Calendar className="h-5 w-5 text-blue-500" />;
+    } else if (item.type === 'action_item') {
+      // For action item activities
+      switch (item.action) {
+        case 'created':
+          return <Plus className="h-5 w-5 text-purple-500" />;
+        case 'updated':
+          return <Pencil className="h-5 w-5 text-yellow-500" />;
+        case 'deleted':
+          return <Trash2 className="h-5 w-5 text-red-500" />;
+        case 'completed':
+          return <CheckSquare className="h-5 w-5 text-green-500" />;
+        default:
+          return <CheckSquare className="h-5 w-5 text-purple-500" />;
+      }
     } else {
       // For file/url activities, show icon based on action
       switch (item.action) {
@@ -183,6 +224,8 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
   const getActivityBadge = (item: TimelineItem) => {
     if (item.type === 'event') {
       return 'Event';
+    } else if (item.type === 'action_item') {
+      return 'Action Item';
     }
     
     switch (item.action) {
@@ -194,6 +237,10 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
         return 'Rename';
       case 'created':
         return 'Create';
+      case 'updated':
+        return 'Update';
+      case 'completed':
+        return 'Complete';
       default:
         return item.action;
     }

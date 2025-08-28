@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { FileText, ExternalLink, Upload, Trash2, Edit3, Clock, Loader2, ChevronDown, Calendar, Activity, Search, Filter } from 'lucide-react';
+import { FileText, ExternalLink, Upload, Trash2, Edit3, Clock, Loader2, ChevronDown, Calendar, Activity, Search, Filter, CheckSquare, Plus, Pencil } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, isThisWeek, subWeeks } from 'date-fns';
 
 interface ActivityLog {
@@ -98,6 +98,22 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
   };
 
   const getActivityIcon = (action: string, resourceType: string) => {
+    // Handle action item icons
+    if (resourceType === 'action_item') {
+      switch (action) {
+        case 'created':
+          return <Plus className="h-4 w-4 text-purple-500" />;
+        case 'updated':
+          return <Pencil className="h-4 w-4 text-yellow-500" />;
+        case 'deleted':
+          return <Trash2 className="h-4 w-4 text-red-500" />;
+        case 'completed':
+          return <CheckSquare className="h-4 w-4 text-green-500" />;
+        default:
+          return <CheckSquare className="h-4 w-4 text-purple-500" />;
+      }
+    }
+    
     switch (action) {
       case 'created':
         return resourceType === 'event' ? 
@@ -119,6 +135,22 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
   const getActivityMessage = (activity: ActivityLog) => {
     const { action, resource_type, resource_name, details, users } = activity;
     const userName = users?.name || users?.email || 'Someone';
+
+    // Handle action item specific messages
+    if (resource_type === 'action_item') {
+      switch (action) {
+        case 'created':
+          return `${userName} created action item "${resource_name}"`;
+        case 'updated':
+          return `${userName} updated action item "${resource_name}"`;
+        case 'deleted':
+          return `${userName} deleted action item "${resource_name}"`;
+        case 'completed':
+          return `${userName} completed action item "${resource_name}"`;
+        default:
+          return `${userName} ${action} action item "${resource_name}"`;
+      }
+    }
 
     switch (action) {
       case 'created':
@@ -153,6 +185,7 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
     { value: 'all', label: 'All Activities' },
     { value: 'uploads', label: 'File Uploads' },
     { value: 'events', label: 'Events' },
+    { value: 'action_items', label: 'Action Items' },
     { value: 'renames', label: 'Renames' },
     { value: 'deletions', label: 'Deletions' },
   ];
@@ -167,10 +200,13 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
     let matchesFilter = true;
     switch (selectedFilter) {
       case 'uploads':
-        matchesFilter = activity.action === 'uploaded' || activity.action === 'created';
+        matchesFilter = activity.action === 'uploaded' || (activity.action === 'created' && activity.resource_type !== 'event' && activity.resource_type !== 'action_item');
         break;
       case 'events':
         matchesFilter = activity.resource_type === 'event';
+        break;
+      case 'action_items':
+        matchesFilter = activity.resource_type === 'action_item';
         break;
       case 'renames':
         matchesFilter = activity.action === 'renamed';
