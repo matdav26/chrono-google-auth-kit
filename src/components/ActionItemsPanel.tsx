@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, CalendarIcon, User, Clock, Edit2, Check, X, AlertCircle, Bell } from 'lucide-react';
+import { Loader2, Plus, CalendarIcon, User, Clock, Edit2, Check, X, AlertCircle, Bell, Trash2 } from 'lucide-react';
 import { format, isPast, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
@@ -303,6 +303,50 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
     }
   };
 
+  const handleDelete = async (itemId: string) => {
+    try {
+      const item = actionItems.find(i => i.id === itemId);
+      
+      const { error } = await supabase
+        .from('action_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      // Log the activity for action item deletion
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && item) {
+        await supabase
+          .from('activity_logs')
+          .insert({
+            project_id: projectId,
+            user_id: user.id,
+            action: 'deleted',
+            resource_type: 'action_item',
+            resource_name: item.action_name,
+            details: {
+              description: item.description,
+            },
+          });
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Action item deleted successfully',
+      });
+
+      fetchActionItems();
+    } catch (error) {
+      console.error('Error deleting action item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete action item',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const startEditing = (itemId: string, field: string, value: any) => {
     setEditingId(itemId);
     setEditingField(field);
@@ -578,29 +622,39 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                         </div>
                       )}
                     </div>
-                    {editingId === item.id && editingField === 'status' ? (
-                      <Select
-                        value={editingValue}
-                        onValueChange={(value) => {
-                          handleInlineEdit(item.id, 'status', value);
-                        }}
+                    <div className="flex items-center gap-2">
+                      {editingId === item.id && editingField === 'status' ? (
+                        <Select
+                          value={editingValue}
+                          onValueChange={(value) => {
+                            handleInlineEdit(item.id, 'status', value);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge 
+                          className={cn('cursor-pointer', getStatusColor(item.status))}
+                          onClick={() => startEditing(item.id, 'status', item.status)}
+                        >
+                          {item.status}
+                        </Badge>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDelete(item.id)}
                       >
-                        <SelectTrigger className="w-[100px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="open">Open</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Badge 
-                        className={cn('cursor-pointer', getStatusColor(item.status))}
-                        onClick={() => startEditing(item.id, 'status', item.status)}
-                      >
-                        {item.status}
-                      </Badge>
-                    )}
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
