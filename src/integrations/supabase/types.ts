@@ -16,9 +16,10 @@ export type Database = {
     Tables: {
       action_items: {
         Row: {
+          action_name: string
           created_at: string | null
           deadline: string | null
-          description: string
+          description: string | null
           id: string
           owner_id: string
           project_id: string
@@ -26,9 +27,10 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          action_name: string
           created_at?: string | null
           deadline?: string | null
-          description: string
+          description?: string | null
           id?: string
           owner_id: string
           project_id: string
@@ -36,9 +38,10 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          action_name?: string
           created_at?: string | null
           deadline?: string | null
-          description?: string
+          description?: string | null
           id?: string
           owner_id?: string
           project_id?: string
@@ -245,6 +248,44 @@ export type Database = {
         }
         Relationships: []
       }
+      rag_context: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          project_id: string | null
+          source_id: string | null
+          source_type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          project_id?: string | null
+          source_id?: string | null
+          source_type: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          project_id?: string | null
+          source_id?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_context_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -271,10 +312,124 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_rag_view: {
+        Row: {
+          content: string | null
+          project_id: string | null
+          rag_row_id: string | null
+          source_id: string | null
+          source_type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: unknown
+      }
+      match_rag_context: {
+        Args: {
+          match_count: number
+          project_id: string
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: string
+          similarity: number
+          source_id: string
+          source_type: string
+        }[]
+      }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
     }
     Enums: {
       role_type: "owner" | "editor" | "viewer"
