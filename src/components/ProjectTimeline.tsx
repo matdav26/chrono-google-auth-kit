@@ -155,7 +155,7 @@ export const ProjectTimeline = ({ projectId }: ProjectTimelineProps) => {
                   <p className="text-sm text-foreground">
                     {getActivityMessage(activity)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
                   </p>
                 </div>

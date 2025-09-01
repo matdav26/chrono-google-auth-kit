@@ -297,7 +297,7 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
     return (
       <Card className="mb-6">
         <CardContent className="p-4 text-center text-muted-foreground">
-          No events or file uploads yet. Create an event or upload a document to see timeline items.
+          No events or file uploads yet. Upload a document to see timeline items.
         </CardContent>
       </Card>
     );

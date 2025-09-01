@@ -34,6 +34,7 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchActivities();
@@ -218,7 +219,35 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
         matchesFilter = true;
     }
 
-    return matchesSearch && matchesFilter;
+    // Date filter
+    const activityDate = new Date(activity.created_at);
+    const now = new Date();
+    let matchesDate = true;
+    
+    switch (dateFilter) {
+      case 'today':
+        matchesDate = activityDate.toDateString() === now.toDateString();
+        break;
+      case 'yesterday':
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        matchesDate = activityDate.toDateString() === yesterday.toDateString();
+        break;
+      case 'week':
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        matchesDate = activityDate >= weekAgo;
+        break;
+      case 'month':
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        matchesDate = activityDate >= monthAgo;
+        break;
+      default:
+        matchesDate = true;
+    }
+
+    return matchesSearch && matchesFilter && matchesDate;
   });
 
   const groupedActivities = filteredActivities.reduce((groups, activity) => {
@@ -278,6 +307,17 @@ export const ProjectLogs = ({ projectId }: ProjectLogsProps) => {
               </div>
               
               <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 {filterOptions.map((option) => (
                   <Badge
