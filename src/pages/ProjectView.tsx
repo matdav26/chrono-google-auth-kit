@@ -109,10 +109,7 @@ const ProjectView = () => {
       case 'timeline':
         return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Project Timeline</h2>
-              <EventCreation projectId={project.id} />
-            </div>
+            <h2 className="text-2xl font-semibold">Project Timeline</h2>
             <HorizontalTimeline projectId={project.id} />
             <ProjectLogs projectId={project.id} />
           </div>
