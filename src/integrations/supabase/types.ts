@@ -155,6 +155,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          event_date: string | null
           event_description: string | null
           event_name: string | null
           event_summary: string | null
@@ -165,6 +166,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          event_date?: string | null
           event_description?: string | null
           event_name?: string | null
           event_summary?: string | null
@@ -175,6 +177,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          event_date?: string | null
           event_description?: string | null
           event_name?: string | null
           event_summary?: string | null

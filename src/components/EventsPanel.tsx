@@ -122,7 +122,7 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
           project_id: projectId,
           event_name: eventName.trim(),
           event_description: eventDescription.trim() || null,
-          created_at: new Date(eventDate).toISOString(),
+          event_date: new Date(eventDate).toISOString(),
         })
         .select();
 
@@ -173,6 +173,7 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
         .update({
           event_name: eventName.trim(),
           event_description: eventDescription.trim() || null,
+          event_date: new Date(eventDate).toISOString(),
         })
         .eq('id', editingEvent.id);
 
@@ -306,6 +307,9 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
     setEditingEvent(event);
     setEventName(event.event_name);
     setEventDescription(event.event_description || '');
+    // Use event_date if available, otherwise fall back to created_at
+    const dateToEdit = (event as any).event_date || event.created_at;
+    setEventDate(new Date(dateToEdit).toISOString().slice(0, 16));
     setEditDialog(true);
   };
 
@@ -473,7 +477,7 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                     </CardTitle>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(event.created_at), 'MMM d, yyyy \'at\' h:mm a')}
+                      {format(new Date((event as any).event_date || event.created_at), 'MMM d, yyyy \'at\' h:mm a')}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -627,6 +631,16 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
                 placeholder="Enter event name..."
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-event-date">Date</Label>
+              <Input
+                id="edit-event-date"
+                type="datetime-local"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
               />
             </div>
 
