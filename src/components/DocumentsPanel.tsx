@@ -200,6 +200,23 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }
+        
+        // Log the file upload activity
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('activity_logs')
+            .insert({
+              project_id: projectId,
+              user_id: user.id,
+              action: 'uploaded',
+              resource_type: 'file',
+              resource_name: file.name,
+              details: {
+                doc_type: getDocType(file.name),
+              },
+            });
+        }
       } else if (uploadType === 'url') {
         // For URLs, store them directly in the database without processing
         // Extract a meaningful filename from the URL
