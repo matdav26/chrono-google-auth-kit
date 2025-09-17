@@ -23,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth-callback" element={<AuthCallback />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectView />} />
             <Route path="/projects/new" element={<NewProject />} />

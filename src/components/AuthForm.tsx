@@ -39,24 +39,30 @@ export const AuthForm = () => {
       if (error) {
         setError(error.message);
       } else if (data.user) {
-        // Manually insert user into users table with email signup_method
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            signup_method: 'email'
+        // Check if we need to verify email
+        if (data.user.email_confirmed_at === null) {
+          // Email confirmation required
+          toast({
+            title: "Success",
+            description: "Check your email for the confirmation link!",
           });
+        } else {
+          // Email already confirmed or confirmation not required - insert user
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              signup_method: 'email'
+            });
 
-        if (insertError) {
-          console.error('Error creating user record:', insertError);
+          if (insertError && insertError.code !== '23505') { // Ignore duplicate key errors
+            console.error('Error creating user record:', insertError);
+          }
+
+          // Session should be established, navigate to projects
+          navigate('/projects');
         }
-
-        toast({
-          title: "Success",
-          description: "Check your email for the confirmation link!",
-        });
-        navigate('/projects');
       }
     } catch (error) {
       setError("An unexpected error occurred");

@@ -13,18 +13,16 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.log('🔄 Processing OAuth callback...');
+        console.log('🔄 Processing auth callback...');
         console.log('📍 Current URL:', window.location.href);
-        console.log('🔍 URL parameters:', window.location.search);
         
         // Wait a bit for Supabase to process the callback
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Get the current session after OAuth redirect
+        // Get the current session after redirect
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         console.log('📋 Session data:', session);
-        console.log('❌ Session error:', sessionError);
         
         if (sessionError) {
           console.error('❌ Session error:', sessionError);
@@ -37,23 +35,53 @@ const AuthCallback: React.FC = () => {
         if (session && session.user) {
           console.log('✅ Authentication successful:', session.user.email);
           
-          // Validate Google OAuth login - check if user exists in database
-          const validation = await handleGoogleOAuthValidation(session.user.id);
-          
-          if (!validation.success) {
-            console.log('❌ Google OAuth validation failed');
-            setError(validation.errorMessage || 'Authentication validation failed');
-            setStatus('error');
+          // Check if this is a Google OAuth login
+          if (session.user.app_metadata?.provider === 'google') {
+            // Validate Google OAuth login - check if user exists in database
+            const validation = await handleGoogleOAuthValidation(session.user.id);
             
-            // Show toast notification
-            toast({
-              title: "Authentication Failed",
-              description: validation.errorMessage,
-              variant: "destructive",
-            });
+            if (!validation.success) {
+              console.log('❌ Google OAuth validation failed');
+              setError(validation.errorMessage || 'Authentication validation failed');
+              setStatus('error');
+              
+              // Show toast notification
+              toast({
+                title: "Authentication Failed",
+                description: validation.errorMessage,
+                variant: "destructive",
+              });
+              
+              setTimeout(() => navigate('/'), 3000);
+              return;
+            }
+          } else {
+            // For email signups after confirmation, ensure user is in the users table
+            console.log('✉️ Email authentication detected, ensuring user record exists...');
             
-            setTimeout(() => navigate('/'), 3000);
-            return;
+            // Check if user exists in users table
+            const { data: existingUser } = await supabase
+              .from('users')
+              .select('id')
+              .eq('id', session.user.id)
+              .single();
+
+            if (!existingUser) {
+              // Insert user if doesn't exist
+              const { error: insertError } = await supabase
+                .from('users')
+                .insert({
+                  id: session.user.id,
+                  email: session.user.email,
+                  signup_method: 'email'
+                });
+
+              if (insertError && insertError.code !== '23505') { // Ignore duplicate key errors
+                console.error('❌ Error creating user record:', insertError);
+              } else {
+                console.log('✅ User record created successfully');
+              }
+            }
           }
           
           console.log('✅ User validation successful');
@@ -64,13 +92,25 @@ const AuthCallback: React.FC = () => {
             navigate('/projects');
           }, 1000);
         } else {
-          console.log('❌ No session found after OAuth callback');
-          console.log('🔍 Trying to get user directly...');
+          console.log('❌ No session found after callback');
           
           // Try getting user directly
           const { data: { user }, error: userError } = await supabase.auth.getUser();
           console.log('👤 User data:', user);
-          console.log('❌ User error:', userError);
+          
+          if (user) {
+            // User exists but no session - might be email confirmation
+            console.log('🔐 User found but no session, might be email confirmation');
+            
+            // Try to refresh session
+            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+            if (refreshedSession) {
+              console.log('✅ Session refreshed successfully');
+              setStatus('success');
+              setTimeout(() => navigate('/projects'), 1000);
+              return;
+            }
+          }
           
           setError('No session found after authentication');
           setStatus('error');
@@ -85,7 +125,7 @@ const AuthCallback: React.FC = () => {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   if (status === 'loading') {
     return (
