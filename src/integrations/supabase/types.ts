@@ -21,7 +21,8 @@ export type Database = {
           deadline: string | null
           description: string | null
           id: string
-          owner_id: string
+          owner_id: string | null
+          owner_name: string | null
           project_id: string
           status: string | null
           updated_at: string | null
@@ -32,7 +33,8 @@ export type Database = {
           deadline?: string | null
           description?: string | null
           id?: string
-          owner_id: string
+          owner_id?: string | null
+          owner_name?: string | null
           project_id: string
           status?: string | null
           updated_at?: string | null
@@ -43,19 +45,13 @@ export type Database = {
           deadline?: string | null
           description?: string | null
           id?: string
-          owner_id?: string
+          owner_id?: string | null
+          owner_name?: string | null
           project_id?: string
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "action_items_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "action_items_project_id_fkey"
             columns: ["project_id"]
