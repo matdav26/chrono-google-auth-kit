@@ -74,16 +74,10 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
 
   const fetchTimelineItems = async () => {
     try {
-      // Fetch activity logs with user data
+      // Fetch activity logs for deletions, renames, events etc.
       const { data: activities, error: activitiesError } = await supabase
         .from('activity_logs')
-        .select(`
-          *,
-          users:user_id (
-            name,
-            email
-          )
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
