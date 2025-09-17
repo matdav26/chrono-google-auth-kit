@@ -74,10 +74,16 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
 
   const fetchTimelineItems = async () => {
     try {
-      // Fetch activity logs for deletions, renames, events etc.
+      // Fetch activity logs with user data
       const { data: activities, error: activitiesError } = await supabase
         .from('activity_logs')
-        .select('*')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            email
+          )
+        `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
@@ -126,23 +132,24 @@ export const HorizontalTimeline = ({ projectId, preview = false }: HorizontalTim
         details: { doc_type: doc.doc_type, raw_text: doc.raw_text },
       }));
 
-      // Combine and sort by date, remove duplicates based on document name and close timestamps
-      const allItems = [...activityItems, ...uploadItems];
-      const uniqueItems = allItems.filter((item, index, arr) => {
-        // For uploads, check if there's a corresponding activity log entry within a short time window
-        if (item.action === 'uploaded') {
-          const hasActivityLog = arr.some(other => 
-            other.action === 'uploaded' && 
-            other.title === item.title && 
-            other.id !== item.id &&
-            Math.abs(new Date(other.date).getTime() - new Date(item.date).getTime()) < 60000 // 1 minute
-          );
-          return !hasActivityLog;
+      // Combine and sort by date
+      // Since we now log file uploads in activity_logs, we only need document-based items
+      // for documents that don't have corresponding activity logs (legacy data)
+      const allItems = [...activityItems];
+      
+      // Add upload items only for documents that don't have activity logs
+      uploadItems.forEach(uploadItem => {
+        const hasActivityLog = activityItems.some(activity => 
+          activity.action === 'uploaded' && 
+          activity.title === uploadItem.title &&
+          Math.abs(new Date(activity.date).getTime() - new Date(uploadItem.date).getTime()) < 60000 // 1 minute
+        );
+        if (!hasActivityLog) {
+          allItems.push(uploadItem);
         }
-        return true;
       });
 
-      const sortedItems = uniqueItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const sortedItems = allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       // If in preview mode, limit to latest 3 items
       setItems(preview ? sortedItems.slice(0, 3) : sortedItems);
