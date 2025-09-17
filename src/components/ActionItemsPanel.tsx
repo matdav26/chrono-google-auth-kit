@@ -24,6 +24,7 @@ interface ActionItem {
   action_name: string;
   description: string | null;
   owner_id: string;
+  owner_name: string | null;
   deadline: string | null;
   status: string;
   created_at: string;
@@ -44,7 +45,7 @@ interface ProjectMember {
 const actionItemSchema = z.object({
   action_name: z.string().min(1, 'Action name is required'),
   description: z.string().optional(),
-  owner_id: z.string().min(1, 'Owner is required'),
+  owner_name: z.string().min(1, 'Owner name is required'),
   deadline: z.date().optional(),
   status: z.enum(['open', 'closed']),
   reminder: z.enum(['none', '1', '3', '7']).optional(),
@@ -59,8 +60,6 @@ interface ActionItemsPanelProps {
 export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
   const { toast } = useToast();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
-  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
-  const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,7 +72,7 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
     defaultValues: {
       action_name: '',
       description: '',
-      owner_id: '',
+      owner_name: '',
       status: 'open',
       reminder: 'none',
     },
@@ -81,60 +80,9 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
   useEffect(() => {
     fetchActionItems();
-    fetchProjectMembers();
   }, [projectId]);
 
-  const fetchProjectMembers = async () => {
-    try {
-      // First fetch project memberships
-      const { data: memberships, error: membershipError } = await supabase
-        .from('project_memberships')
-        .select('user_id')
-        .eq('project_id', projectId);
-
-      if (membershipError) throw membershipError;
-
-      if (!memberships || memberships.length === 0) {
-        setProjectMembers([]);
-        return;
-      }
-
-      // Then fetch users separately
-      const userIds = memberships.map(m => m.user_id);
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, name, email')
-        .in('id', userIds);
-
-      if (usersError) throw usersError;
-
-      // Combine the data
-      const combinedData = memberships.map(membership => ({
-        user_id: membership.user_id,
-        users: users?.find(u => u.id === membership.user_id) || {
-          id: membership.user_id,
-          name: null,
-          email: null,
-        },
-      }));
-
-      setProjectMembers(combinedData);
-      
-      // Create users map for quick lookup
-      const map = new Map<string, User>();
-      users?.forEach(user => {
-        map.set(user.id, user);
-      });
-      setUsersMap(map);
-    } catch (error) {
-      console.error('Error fetching project members:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch project members',
-        variant: 'destructive',
-      });
-    }
-  };
+  // Removed fetchProjectMembers function since we're using free-text owner_name field now
 
   const fetchActionItems = async () => {
     try {
@@ -174,11 +122,18 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
   const handleSubmit = async (data: ActionItemFormData) => {
     try {
+      // Get current user to set as owner_id (creator)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       console.log('Submitting action item with data:', {
         project_id: projectId,
         action_name: data.action_name,
         description: data.description || null,
-        owner_id: data.owner_id,
+        owner_id: user.id,
+        owner_name: data.owner_name,
         deadline: data.deadline?.toISOString(),
         status: data.status,
       });
@@ -189,7 +144,8 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
           project_id: projectId,
           action_name: data.action_name,
           description: data.description || null,
-          owner_id: data.owner_id,
+          owner_id: user.id,  // Set creator as owner_id
+          owner_name: data.owner_name,  // Set manual owner name
           deadline: data.deadline?.toISOString(),
           status: data.status,
         })
@@ -203,8 +159,7 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
       console.log('Successfully created action item:', insertedData);
 
-      // Log the activity for the action item creation
-      const { data: { user } } = await supabase.auth.getUser();
+      // Log the activity for the action item creation (user already fetched above)
       if (user && insertedData) {
         await supabase
           .from('activity_logs')
@@ -216,7 +171,7 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
             resource_name: data.action_name,
             details: {
               description: data.description,
-              owner_id: data.owner_id,
+              owner_name: data.owner_name,
               deadline: data.deadline?.toISOString(),
               status: data.status,
             },
@@ -441,24 +396,19 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
 
                 <FormField
                   control={form.control}
-                  name="owner_id"
+                  name="owner_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Owner</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an owner" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {projectMembers.map((member) => (
-                            <SelectItem key={member.user_id} value={member.user_id}>
-                              {member.users?.name || member.users?.email || 'Unknown User'}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter owner's name..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Manually enter the name of the person responsible for this action item
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -578,7 +528,6 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
       ) : (
         <div className="grid gap-4">
           {actionItems.map((item) => {
-            const owner = usersMap.get(item.owner_id);
             const isOverdue = item.deadline && isPast(new Date(item.deadline));
             
             return (
@@ -661,30 +610,38 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                   <div className="flex flex-wrap gap-4 text-sm">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      {editingId === item.id && editingField === 'owner_id' ? (
-                        <Select
-                          value={editingValue}
-                          onValueChange={(value) => {
-                            handleInlineEdit(item.id, 'owner_id', value);
-                          }}
-                        >
-                          <SelectTrigger className="w-[150px] h-7">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {projectMembers.map((member) => (
-                              <SelectItem key={member.user_id} value={member.user_id}>
-                                {member.users?.name || member.users?.email || 'Unknown User'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {editingId === item.id && editingField === 'owner_name' ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            className="w-[150px] h-7"
+                            placeholder="Owner name..."
+                            autoFocus
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => handleInlineEdit(item.id, 'owner_name', editingValue)}
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={cancelEditing}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
                       ) : (
                         <span 
                           className="cursor-pointer hover:text-primary"
-                          onClick={() => startEditing(item.id, 'owner_id', item.owner_id)}
+                          onClick={() => startEditing(item.id, 'owner_name', item.owner_name || '')}
                         >
-                          {owner?.name || owner?.email || 'Unknown User'}
+                          {item.owner_name || 'Unassigned'}
                         </span>
                       )}
                     </div>
