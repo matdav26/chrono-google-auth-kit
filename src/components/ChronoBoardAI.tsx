@@ -108,7 +108,7 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         type: 'assistant',
-        content: data.response || 'No response received from the AI.',
+        content: data.answer || 'No response received from the AI.',
         sources: data.sources || [],
         timestamp: new Date(),
       };
