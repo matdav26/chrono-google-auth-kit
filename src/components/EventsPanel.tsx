@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Calendar, Search, Loader2, Edit, Trash2, Sparkles, ChevronDown, ChevronUp, Plus, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Event {
   id: string;
@@ -49,6 +50,7 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 16));
   
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchEvents();
@@ -107,6 +109,15 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error", 
+        description: "You must be logged in to create events",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -115,6 +126,7 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
       console.log('Event Name:', eventName.trim());
       console.log('Event Description:', eventDescription.trim() || null);
       console.log('Event Date:', new Date(eventDate).toISOString());
+      console.log('User ID:', user.id);
       
       const { data, error } = await supabase
         .from('events')
@@ -123,6 +135,7 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
           event_name: eventName.trim(),
           event_description: eventDescription.trim() || null,
           event_date: new Date(eventDate).toISOString(),
+          created_by: user.id,
         })
         .select();
 
