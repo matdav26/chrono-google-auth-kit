@@ -253,8 +253,9 @@ export type Database = {
           created_at: string | null
           embedding: string | null
           id: string
-          project_id: string | null
-          source_id: string | null
+          metadata: Json | null
+          project_id: string
+          source_id: string
           source_type: string
         }
         Insert: {
@@ -262,8 +263,9 @@ export type Database = {
           created_at?: string | null
           embedding?: string | null
           id?: string
-          project_id?: string | null
-          source_id?: string | null
+          metadata?: Json | null
+          project_id: string
+          source_id: string
           source_type: string
         }
         Update: {
@@ -271,8 +273,9 @@ export type Database = {
           created_at?: string | null
           embedding?: string | null
           id?: string
-          project_id?: string | null
-          source_id?: string | null
+          metadata?: Json | null
+          project_id?: string
+          source_id?: string
           source_type?: string
         }
         Relationships: [
@@ -311,16 +314,7 @@ export type Database = {
       }
     }
     Views: {
-      project_rag_view: {
-        Row: {
-          content: string | null
-          project_id: string | null
-          rag_row_id: string | null
-          source_id: string | null
-          source_type: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       binary_quantize: {
@@ -381,13 +375,15 @@ export type Database = {
       }
       match_rag_context: {
         Args: {
-          match_count: number
-          project_id: string
+          match_count?: number
+          match_project_id: string
           query_embedding: string
         }
         Returns: {
           content: string
           id: string
+          metadata: Json
+          project_id: string
           similarity: number
           source_id: string
           source_type: string
