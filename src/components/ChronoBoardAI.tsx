@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, Send, Loader2, ChevronDown, FileText, Bot, User, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface ChronoBoardAIProps {
   projectId: string;
@@ -25,17 +27,15 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-// Backend configuration - hardcoded for now
-const RAG_ENDPOINT = 'http://localhost:8000/api/projects/5f6edc71-aeb4-4eed-8b19-f9282af3589a/rag-search';
-const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzcHBtbXN4c2NwcmloamFidnZuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTU0NjQyNywiZXhwIjoyMDY3MTIyNDI3fQ.jLi22r3bSgRfVbIj5KBUp7aCLyfcbiFEkkpLir80PR0';
-
 export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const [sessionId] = useState(`session-${Date.now()}`);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -69,6 +69,19 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
       return;
     }
 
+    // Check if user is authenticated
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to use the AI assistant",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -81,32 +94,44 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(RAG_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN,
+      const { data, error } = await supabase.functions.invoke('rag-chat', {
+        body: {
+          message: question,
+          project_id: projectId,
+          session_id: sessionId,
         },
-        body: JSON.stringify({
-          query: question,
-          match_count: 5,
-        }),
       });
 
-      const data = await response.json();
-      
-      // Log full response for debugging
-      console.log('RAG Response:', data);
+      if (error) {
+        throw error;
+      }
 
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      // Handle different error scenarios
+      if (data?.error) {
+        if (data.error.includes('Authorization')) {
+          toast({
+            title: "Session Expired",
+            description: "Please log in again",
+            variant: "destructive",
+          });
+          navigate('/auth');
+          return;
+        } else if (data.error.includes('Access denied')) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have access to this project",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(data.error);
       }
 
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         type: 'assistant',
-        content: data.answer || 'No response received from the AI.',
-        sources: data.results || [],
+        content: data.response || 'No response received from the AI.',
+        sources: data.sources || [],
         timestamp: new Date(),
       };
 
@@ -118,7 +143,7 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         type: 'error',
-        content: '❌ Something went wrong. Please try again.',
+        content: error instanceof Error ? error.message : '❌ Something went wrong. Please try again.',
         timestamp: new Date(),
       };
       
@@ -126,7 +151,7 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
       
       toast({
         title: "Error",
-        description: "Failed to process AI query",
+        description: error instanceof Error ? error.message : "Failed to process AI query",
         variant: "destructive",
       });
     } finally {
