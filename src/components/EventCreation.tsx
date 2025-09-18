@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar, Loader2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EventCreationProps {
   projectId: string;
@@ -19,12 +20,22 @@ export const EventCreation = ({ projectId, onEventCreated }: EventCreationProps)
   const [eventDescription, setEventDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleCreateEvent = async () => {
     if (!eventName.trim()) {
       toast({
         title: "Error",
         description: "Please enter an event name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create events",
         variant: "destructive",
       });
       return;
@@ -39,6 +50,7 @@ export const EventCreation = ({ projectId, onEventCreated }: EventCreationProps)
           project_id: projectId,
           event_name: eventName.trim(),
           event_description: eventDescription.trim() || null,
+          created_by: user.id,
         });
 
       if (error) throw error;
