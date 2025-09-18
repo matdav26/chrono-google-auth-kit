@@ -69,19 +69,6 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
       return;
     }
 
-    // Check if user is authenticated
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to use the AI assistant",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -94,36 +81,27 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('rag-chat', {
-        body: {
+      // Direct fetch to backend API
+      const response = await fetch('http://localhost:8000/api/chat/send-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           message: question,
           project_id: projectId,
           session_id: sessionId,
-        },
+        }),
       });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
 
       // Handle different error scenarios
       if (data?.error) {
-        if (data.error.includes('Authorization')) {
-          toast({
-            title: "Session Expired",
-            description: "Please log in again",
-            variant: "destructive",
-          });
-          navigate('/auth');
-          return;
-        } else if (data.error.includes('Access denied')) {
-          toast({
-            title: "Access Denied",
-            description: "You don't have access to this project",
-            variant: "destructive",
-          });
-          return;
-        }
         throw new Error(data.error);
       }
 
