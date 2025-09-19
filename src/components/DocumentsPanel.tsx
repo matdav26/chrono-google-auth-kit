@@ -1,6 +1,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/lib/api';
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -192,7 +193,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
         // Upload to backend API
         const response = await api.post(
-          `https://chronoboard-backend.onrender.com/api/projects/${projectId}/documents/`,
+          API_ENDPOINTS.uploadDocument(projectId),
           formData
         );
 
@@ -421,7 +422,7 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
 
     try {
       const response = await api.post(
-        `https://chronoboard-backend.onrender.com/api/documents/${documentId}/generate-summary`
+        API_ENDPOINTS.generateDocumentSummary(documentId)
       );
 
       if (!response.ok) {

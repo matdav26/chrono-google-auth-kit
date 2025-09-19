@@ -81,8 +81,11 @@ export const ChronoBoardAI = ({ projectId }: ChronoBoardAIProps) => {
     setIsLoading(true);
     
     try {
+      // Import API endpoints at the top of the file
+      const { API_ENDPOINTS } = await import('@/config/api');
+      
       // Direct fetch to backend API
-      const response = await fetch('http://localhost:8000/api/chat/send-test', {
+      const response = await fetch(API_ENDPOINTS.sendTestMessage, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

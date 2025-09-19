@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/lib/api';
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -269,10 +270,10 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
       console.log('Event ID length:', event.id.length);
       console.log('Project ID:', projectId);
       console.log('Event ID:', event.id);
-      console.log('Making API call to:', `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`);
+      console.log('Making API call to:', API_ENDPOINTS.generateEventSummary(event.id));
       
       const response = await api.post(
-        `https://chronoboard-backend.onrender.com/api/events/${event.id}/generate-summary`
+        API_ENDPOINTS.generateEventSummary(event.id)
       );
 
       console.log('API Response status:', response.status);
