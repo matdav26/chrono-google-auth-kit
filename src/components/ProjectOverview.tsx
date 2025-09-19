@@ -1,5 +1,5 @@
 import { ProjectStats } from './ProjectStats';
-import { ChronoBoardAI } from './ChronoBoardAI';
+// import { ChronoBoardAI } from './ChronoBoardAI'; // RAG feature temporarily disabled
 import { HorizontalTimeline } from './HorizontalTimeline';
 import { EventCreation } from './EventCreation';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,8 @@ export const ProjectOverview = ({ projectId, onSectionChange }: ProjectOverviewP
         <HorizontalTimeline projectId={projectId} preview={true} />
       </div>
       
-      <ChronoBoardAI projectId={projectId} />
+      {/* RAG feature temporarily disabled - can be re-enabled by uncommenting */}
+      {/* <ChronoBoardAI projectId={projectId} /> */}
     </div>
   );
 };
