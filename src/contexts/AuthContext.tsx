@@ -59,67 +59,30 @@ const ensureUserIsInUsersTable = async (user: User, signupMethod: 'email' | 'goo
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('AuthContext: Auth state changed:', event, session);
+      (_event, session) => {
+        console.log('Auth state changed:', _event, session);
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Log OAuth events for debugging
-        if (event === 'SIGNED_IN') {
-          console.log('User signed in successfully');
-          // Handle OAuth callback hash
-          if (window.location.hash && window.location.hash.includes('access_token')) {
-            console.log('OAuth callback detected, processing...');
-            const { data: { session: newSession } } = await supabase.auth.getSession();
-            if (newSession) {
-              console.log('Session established from OAuth callback');
-              setSession(newSession);
-              setUser(newSession.user);
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed');
-        } else if (event === 'USER_UPDATED') {
-          console.log('User data updated');
-        }
+        setLoading(false);
       }
     );
 
-    // THEN check for existing session or OAuth callback
-    const checkSession = async () => {
-      // Check if this is an OAuth callback
-      if (window.location.hash && window.location.hash.includes('access_token')) {
-        console.log('OAuth callback URL detected');
-        // Give Supabase time to process the callback
-        setTimeout(async () => {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          if (error) {
-            console.error('Error getting session:', error);
-          } else {
-            console.log('AuthContext: Session from OAuth:', session);
-            setSession(session);
-            setUser(session?.user ?? null);
-          }
-        }, 100);
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting initial session:', error);
       } else {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting initial session:', error);
-        } else {
-          console.log('AuthContext: Initial session check:', session);
-          setSession(session);
-          setUser(session?.user ?? null);
-        }
+        console.log('Initial session check:', session);
+        setSession(session);
+        setUser(session?.user ?? null);
       }
-    };
-    
-    checkSession();
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
