@@ -366,6 +366,10 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                         <Input
                           placeholder="Enter action item name..."
                           {...field}
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck="false"
                         />
                       </FormControl>
                       <FormMessage />
@@ -384,6 +388,10 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                           placeholder="Enter detailed description if needed..."
                           className="resize-none"
                           {...field}
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck="true"
                         />
                       </FormControl>
                       <FormDescription>
@@ -404,6 +412,10 @@ export const ActionItemsPanel = ({ projectId }: ActionItemsPanelProps) => {
                         <Input
                           placeholder="Enter owner's name..."
                           {...field}
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck="false"
                         />
                       </FormControl>
                       <FormDescription>

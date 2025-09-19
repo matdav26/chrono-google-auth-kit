@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Edit2, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentsPanel, DocumentsPanelRef } from '@/components/DocumentsPanel';
 import { ProjectLogs } from '@/components/ProjectLogs';
@@ -12,6 +12,8 @@ import { ProjectNavigation, ProjectSection } from '@/components/ProjectNavigatio
 import { ProjectOverview } from '@/components/ProjectOverview';
 import { EventsPanel } from '@/components/EventsPanel';
 import { ActionItemsPanel } from '@/components/ActionItemsPanel';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Project {
   id: string;
@@ -28,6 +30,8 @@ const ProjectView = () => {
   const [loading, setLoading] = useState(true);
   const [documentsRef, setDocumentsRef] = useState<DocumentsPanelRef | null>(null);
   const [currentSection, setCurrentSection] = useState<ProjectSection>('overview');
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [tempDescription, setTempDescription] = useState('');
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -78,6 +82,43 @@ const ProjectView = () => {
 
     fetchProject();
   }, [id, navigate, toast]);
+
+  const handleUpdateDescription = async () => {
+    if (!project) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ description: tempDescription })
+        .eq('id', project.id);
+
+      if (error) throw error;
+
+      setProject({ ...project, description: tempDescription });
+      setEditingDescription(false);
+      toast({
+        title: "Success",
+        description: "Project description updated",
+      });
+    } catch (err) {
+      console.error('Error updating description:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update project description",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEditingDescription = () => {
+    setTempDescription(project?.description || '');
+    setEditingDescription(true);
+  };
+
+  const cancelEditingDescription = () => {
+    setEditingDescription(false);
+    setTempDescription('');
+  };
 
   if (loading) {
     return (
@@ -141,9 +182,49 @@ const ProjectView = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">
             {project.name || 'Untitled Project'}
           </h1>
-          {project.description && (
-            <p className="text-muted-foreground">{project.description}</p>
-          )}
+          <div className="flex items-start gap-2">
+            {editingDescription ? (
+              <div className="flex-1 flex items-start gap-2">
+                <Textarea
+                  value={tempDescription}
+                  onChange={(e) => setTempDescription(e.target.value)}
+                  placeholder="Add a project description..."
+                  className="flex-1 min-h-[60px] resize-none"
+                  autoComplete="off"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  onClick={handleUpdateDescription}
+                  className="h-8"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={cancelEditingDescription}
+                  className="h-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-muted-foreground flex-1">
+                  {project.description || 'No description yet'}
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={startEditingDescription}
+                  className="h-8 px-2"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <ProjectNavigation 

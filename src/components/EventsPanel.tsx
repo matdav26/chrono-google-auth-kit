@@ -405,6 +405,10 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   placeholder="Enter event name..."
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
                 />
               </div>
               
@@ -426,6 +430,10 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                   onChange={(e) => setEventDescription(e.target.value)}
                   placeholder="Enter event description..."
                   rows={4}
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="true"
                 />
               </div>
 
@@ -654,6 +662,10 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
                 placeholder="Enter event name..."
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck="false"
               />
             </div>
 
@@ -675,6 +687,10 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                 onChange={(e) => setEventDescription(e.target.value)}
                 placeholder="Enter event description..."
                 rows={4}
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck="true"
               />
             </div>
 

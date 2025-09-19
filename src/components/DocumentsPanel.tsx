@@ -602,6 +602,10 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
                      value={url}
                      onChange={(e) => setUrl(e.target.value)}
                      placeholder="https://example.com/document or Figma link"
+                     autoComplete="off"
+                     autoCapitalize="off"
+                     autoCorrect="off"
+                     spellCheck="false"
                    />
                   </div>
                 )}
