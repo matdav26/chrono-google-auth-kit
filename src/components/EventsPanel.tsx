@@ -496,17 +496,28 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                   <div className="flex items-center gap-2">
                     {event.event_description && !event.processed && (
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={() => handleGenerateSummary(event)}
                         disabled={generatingSummary === event.id}
+                        className="group relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-sm hover:shadow-md"
                       >
-                        {generatingSummary === event.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        ) : (
-                          <Sparkles className="h-3 w-3 mr-1" />
+                        <span className="relative flex items-center">
+                          {generatingSummary === event.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span className="text-xs font-medium">Generating Summary...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2 group-hover:animate-pulse" />
+                              <span className="text-xs font-medium">Generate Summary</span>
+                            </>
+                          )}
+                        </span>
+                        {!generatingSummary && (
+                          <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out" />
                         )}
-                        {generatingSummary === event.id ? 'Generating...' : 'Generate AI Summary'}
                       </Button>
                     )}
                     <Button
@@ -563,19 +574,21 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                          className="h-8 px-3 rounded-md hover:bg-muted/50 transition-all duration-200 group"
                         >
-                          {expandedDescriptions.has(event.id) ? (
-                            <>
-                              <ChevronUp className="h-3 w-3 mr-2" />
-                              Hide Description
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-3 w-3 mr-2" />
-                              Show Description
-                            </>
-                          )}
+                          <span className="flex items-center text-xs">
+                            {expandedDescriptions.has(event.id) ? (
+                              <>
+                                <ChevronUp className="h-3 w-3 mr-2 group-hover:translate-y-[-1px] transition-transform" />
+                                <span className="font-medium">Hide Description</span>
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-3 w-3 mr-2 group-hover:translate-y-[1px] transition-transform" />
+                                <span className="font-medium">Show Description</span>
+                              </>
+                            )}
+                          </span>
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="animate-accordion-down data-[state=closed]:animate-accordion-up">
@@ -595,29 +608,42 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 px-2 rounded-md hover:bg-primary/10 transition-colors"
+                          className="h-8 px-3 rounded-md bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/15 hover:to-primary/10 transition-all duration-200 border border-primary/10"
                         >
-                          {expandedSummaries.has(event.id) ? (
-                            <>
-                              <ChevronUp className="h-3 w-3 mr-2" />
-                              Hide AI Summary
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-3 w-3 mr-2" />
-                              Show AI Summary
-                            </>
-                          )}
+                          <span className="flex items-center">
+                            <Sparkles className="h-3 w-3 mr-2 text-primary" />
+                            {expandedSummaries.has(event.id) ? (
+                              <>
+                                <span className="text-xs font-medium">Hide AI Summary</span>
+                                <ChevronUp className="h-3 w-3 ml-2" />
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs font-medium">Show AI Summary</span>
+                                <ChevronDown className="h-3 w-3 ml-2" />
+                              </>
+                            )}
+                          </span>
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="animate-accordion-down data-[state=closed]:animate-accordion-up">
-                        <div className="mt-2 text-sm bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 p-4 rounded-lg shadow-sm">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="h-3 w-3 text-primary" />
-                            <span className="text-xs font-medium text-primary uppercase tracking-wide">AI Generated Summary</span>
-                          </div>
-                          <div className="leading-relaxed">
-                            {event.event_summary}
+                        <div className="mt-3 relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
+                          <div className="relative bg-gradient-to-br from-background via-background/95 to-background border border-primary/20 p-5 rounded-xl shadow-lg">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-lg bg-gradient-to-r from-primary to-primary/80 shadow-sm">
+                                  <Sparkles className="h-4 w-4 text-primary-foreground" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">AI Summary</span>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">Generated with ChronoBoard AI</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-sm leading-relaxed text-foreground/90 pl-0.5">
+                              {event.event_summary}
+                            </div>
                           </div>
                         </div>
                       </CollapsibleContent>
