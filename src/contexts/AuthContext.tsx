@@ -65,7 +65,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log('Auth state changed:', _event, session);
+        console.log('Auth state changed:', _event, session ? 'Session exists' : 'No session');
+        if (session?.user) {
+          console.log('User authenticated:', session.user.email);
+          console.log('Access token available:', !!session.access_token);
+        }
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -77,7 +81,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error('Error getting initial session:', error);
       } else {
-        console.log('Initial session check:', session);
+        console.log('Initial session check:', session ? 'Session exists' : 'No session');
+        if (session?.user) {
+          console.log('User authenticated:', session.user.email);
+          console.log('Access token available:', !!session.access_token);
+        }
         setSession(session);
         setUser(session?.user ?? null);
       }

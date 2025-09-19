@@ -192,12 +192,25 @@ export const DocumentsPanel = forwardRef<DocumentsPanelRef, DocumentsPanelProps>
         formData.append('file', file);
 
         // Upload to backend API
-        const response = await api.post(
-          API_ENDPOINTS.uploadDocument(projectId),
-          formData
-        );
+        console.log('Uploading to:', API_ENDPOINTS.uploadDocument(projectId));
+        
+        let response;
+        try {
+          response = await api.post(
+            API_ENDPOINTS.uploadDocument(projectId),
+            formData
+          );
+        } catch (error: any) {
+          console.error('API call error:', error);
+          if (error.message.includes('No authentication token')) {
+            throw new Error('You must be logged in to upload documents. Please refresh the page and log in.');
+          }
+          throw error;
+        }
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Upload response error:', response.status, errorText);
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.message || `Upload failed with status: ${response.status}`);
         }

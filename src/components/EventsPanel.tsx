@@ -272,9 +272,18 @@ export const EventsPanel = ({ projectId, onNavigateToTimeline }: EventsPanelProp
       console.log('Event ID:', event.id);
       console.log('Making API call to:', API_ENDPOINTS.generateEventSummary(event.id));
       
-      const response = await api.post(
-        API_ENDPOINTS.generateEventSummary(event.id)
-      );
+      let response;
+      try {
+        response = await api.post(
+          API_ENDPOINTS.generateEventSummary(event.id)
+        );
+      } catch (error: any) {
+        console.error('API call error:', error);
+        if (error.message.includes('No authentication token')) {
+          throw new Error('You must be logged in to generate summaries. Please refresh the page and log in.');
+        }
+        throw error;
+      }
 
       console.log('API Response status:', response.status);
       console.log('API Response ok:', response.ok);
