@@ -247,47 +247,6 @@ export type Database = {
         }
         Relationships: []
       }
-      rag_context: {
-        Row: {
-          content: string
-          created_at: string | null
-          embedding: string | null
-          id: string
-          metadata: Json | null
-          project_id: string
-          source_id: string
-          source_type: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          embedding?: string | null
-          id?: string
-          metadata?: Json | null
-          project_id: string
-          source_id: string
-          source_type: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          embedding?: string | null
-          id?: string
-          metadata?: Json | null
-          project_id?: string
-          source_id?: string
-          source_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rag_context_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       users: {
         Row: {
           created_at: string
@@ -372,22 +331,6 @@ export type Database = {
       l2_normalize: {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
-      }
-      match_rag_context: {
-        Args: {
-          match_count?: number
-          match_project_id: string
-          query_embedding: string
-        }
-        Returns: {
-          content: string
-          id: string
-          metadata: Json
-          project_id: string
-          similarity: number
-          source_id: string
-          source_type: string
-        }[]
       }
       sparsevec_out: {
         Args: { "": unknown }
