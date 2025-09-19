@@ -94,6 +94,71 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string | null
+          sources: Json | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id?: string | null
+          sources?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string | null
+          sources?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          summary: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           action_items: string | null
@@ -249,32 +314,41 @@ export type Database = {
       }
       rag_context: {
         Row: {
+          chunk_index: number | null
           content: string
           created_at: string | null
           embedding: string | null
           id: string
           metadata: Json | null
+          parent_id: string | null
           project_id: string
+          relevance_score: number | null
           source_id: string
           source_type: string
         }
         Insert: {
+          chunk_index?: number | null
           content: string
           created_at?: string | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          parent_id?: string | null
           project_id: string
+          relevance_score?: number | null
           source_id: string
           source_type: string
         }
         Update: {
+          chunk_index?: number | null
           content?: string
           created_at?: string | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          parent_id?: string | null
           project_id?: string
+          relevance_score?: number | null
           source_id?: string
           source_type?: string
         }
@@ -374,12 +448,20 @@ export type Database = {
         Returns: unknown
       }
       match_rag_context: {
-        Args: {
-          match_count?: number
-          match_project_id: string
-          query_embedding: string
-        }
+        Args:
+          | {
+              match_count?: number
+              match_project_id: string
+              query_embedding: string
+            }
+          | {
+              match_count?: number
+              match_project_id: string
+              query_embedding: string
+              similarity_threshold?: number
+            }
         Returns: {
+          chunk_index: number
           content: string
           id: string
           metadata: Json
